@@ -30,7 +30,7 @@ function Advisor({st, settings, perDay}: {st: State; settings: Settings; perDay:
   const wallet = Math.max(0, st.usedSinceInstall - st.spentTokens), candies = st.inventory.rareCandy || 0;
   const charm = (st.inventory.shinyCharm || 0) > 0, collected = new Set(st.collectedFinals);
   const known = new Set(st.dex.flatMap(d => d.chain));
-  const complete = a ? (FINALS[a.baseID] || [a.baseID]).every(f => collected.has(String(f))) : false;
+  const complete = a ? (FINALS[a.baseID] || [a.baseID]).every(f => collected.has(`${a.baseID}:${f}`)) : false;
   const id = a ? a.path[a.stage] || a.baseID : 0, name = a ? withForm(NAMES[id - 1], id, a.unownForm) : '';
   const wait = (n: number) => { if (!perDay) return ''; const h = n / perDay * 24; return ` (≈ ${h < 48 ? Math.max(1, Math.round(h)) + ' h' : Math.round(h / 24) + tr(' jours', ' days')} ${tr('à ton rythme', 'at your pace')})`; };
   const acts: Act[] = [];
