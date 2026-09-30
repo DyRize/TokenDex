@@ -1,6 +1,4 @@
-import '../../styles/base.css';
-import './boutique.css';
-import '../../styles/theme.css';
+import './page.css';
 import type {ComponentChildren} from 'preact';
 import {Header, NoSave, Tiles, mount, saveEyebrow} from '../../components/Page';
 import {FINALS, NAMES} from '../../data/species';

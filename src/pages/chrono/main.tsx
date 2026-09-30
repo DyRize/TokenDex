@@ -1,5 +1,4 @@
-import './chrono.css';
-import '../../styles/theme.css';
+import './page.css';
 import {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'preact/hooks';
 import {Header, Tiles, mount, saveEyebrow} from '../../components/Page';
 import {toGraduation} from '../../lib/balance';

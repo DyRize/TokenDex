@@ -1,6 +1,4 @@
-import '../../styles/base.css';
-import './chance.css';
-import '../../styles/theme.css';
+import './page.css';
 import type {ComponentChildren} from 'preact';
 import {useMemo, useRef, useState} from 'preact/hooks';
 import {Header, NoSave, Tiles, mount, saveEyebrow, type TileData} from '../../components/Page';

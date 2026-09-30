@@ -1,6 +1,4 @@
-import '../../styles/base.css';
-import './journal.css';
-import '../../styles/theme.css';
+import './page.css';
 import {useState} from 'preact/hooks';
 import {Header, NoSave, Tiles, mount, saveEyebrow, type TileData} from '../../components/Page';
 import {RarityTag} from '../../components/Rarity';

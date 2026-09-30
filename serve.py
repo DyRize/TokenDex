@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Serves TokenDex on http://127.0.0.1:8649.
+"""Serves TokenDex on http://127.0.0.1:8649: the pages built in dist/ by `npm run build`.
 
 Live data, read from the app on every request:
   /save.json      the app's companion-state.json
@@ -14,6 +14,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 import time
 import urllib.request
 import zlib
@@ -22,6 +23,7 @@ from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+DIST = os.path.join(HERE, 'dist')
 APP_DIR = os.path.expanduser('~/Library/Application Support/PokeTokenBar')
 SAVE = os.path.join(APP_DIR, 'companion-state.json')
 USAGE = os.path.join(APP_DIR, 'usage-cache.json')
@@ -168,7 +170,9 @@ class Handler(SimpleHTTPRequestHandler):
 
 
 if __name__ == '__main__':
+    if not os.path.isfile(os.path.join(DIST, 'index.html')):
+        sys.exit('dist/ is missing: run `npm install && npm run build` first.')
     try:
-        ThreadingHTTPServer(('127.0.0.1', PORT), partial(Handler, directory=HERE)).serve_forever()
+        ThreadingHTTPServer(('127.0.0.1', PORT), partial(Handler, directory=DIST)).serve_forever()
     except KeyboardInterrupt:
         pass

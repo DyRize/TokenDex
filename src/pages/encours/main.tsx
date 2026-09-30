@@ -1,6 +1,4 @@
-import '../../styles/base.css';
-import './encours.css';
-import '../../styles/theme.css';
+import './page.css';
 import type {ComponentChildren} from 'preact';
 import {useState} from 'preact/hooks';
 import {Header, NoSave, Tiles, mount, saveEyebrow, type TileData} from '../../components/Page';

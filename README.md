@@ -15,19 +15,23 @@ Il faut un Mac avec PokeTokenBar installé, et une connexion internet pour les s
 
 L'interface existe en français et en anglais : bouton FR/EN dans le menu, sinon c'est la langue du navigateur qui décide.
 
-## Lancer le serveur (recommandé)
+## Lancer le serveur
 
-Double-clique sur `Lancer.command` : une fenêtre Terminal démarre le serveur et ouvre le Pokédex dans ton navigateur. Ferme la fenêtre (ou `Ctrl+C`) pour l'arrêter. Rien ne s'installe et rien ne démarre tout seul.
+Il faut Node (`brew install node`) : les pages sont construites à partir des sources au premier lancement, puis à chaque mise à jour.
+
+Double-clique sur `Lancer.command` : une fenêtre Terminal installe les dépendances et construit les pages si besoin, démarre le serveur et ouvre le Pokédex dans ton navigateur. Ferme la fenêtre (ou `Ctrl+C`) pour l'arrêter. Rien ne démarre tout seul, et ce qui s'installe reste dans le dossier (`node_modules`, `dist`).
 
 Tant qu'il tourne, il relit la sauvegarde de l'app à chaque ouverture de page : pas d'export à faire, tout est à jour quand tu recharges.
 
 Au premier double-clic, macOS bloque le fichier parce qu'il vient d'internet. Va dans Réglages Système > Confidentialité et sécurité, clique sur « Ouvrir quand même » en bas, puis relance-le. Si macOS propose d'installer les outils de développement, accepte : c'est ce qui fournit Python.
 
-Depuis un terminal, c'est pareil avec `python3 serve.py` dans le dossier, puis http://127.0.0.1:8649.
+Depuis un terminal : `npm install && npm run build` dans le dossier, puis `python3 serve.py`, et http://127.0.0.1:8649.
 
-## Sans serveur
+## Développement
 
-Ouvre `index.html` directement dans le navigateur. Dans PokeTokenBar, fais Réglages > Exporter la sauvegarde, puis glisse le fichier sur la page d'accueil. Toutes les pages s'en servent ensuite, mais il faut refaire l'export pour voir tes nouvelles captures. Sans serveur, pas d'heure estimée sur En cours ni de tokens dans le Journal : ils viennent de l'historique de l'app, que seul le serveur lit.
+Les pages sont en Preact + TypeScript, construites par Vite : une entrée HTML par page à la racine, le code dans `src/pages/<page>/`, le reste partagé dans `src/lib` et `src/components`.
+
+`npm run dev` sert les pages sur http://127.0.0.1:5173 et les recharge à chaque modification. Laisse `serve.py` tourner à côté : c'est lui qui fournit la sauvegarde et l'historique, le serveur de dev les lui demande. `npm run typecheck` vérifie les types, `npm run build` refait `dist/`.
 
 ## Ce que le serveur lit
 

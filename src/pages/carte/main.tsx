@@ -1,6 +1,4 @@
-import '../../styles/base.css';
-import './carte.css';
-import '../../styles/theme.css';
+import './page.css';
 import {useEffect, useMemo, useRef, useState} from 'preact/hooks';
 import {Header, NoSave, mount, saveEyebrow} from '../../components/Page';
 import {RLABEL} from '../../components/Rarity';

@@ -1,5 +1,4 @@
-import '../../styles/base.css';
-import '../../styles/theme.css';
+import './page.css';
 import {useMemo, useState} from 'preact/hooks';
 import {Header, NoSave, Tiles, mount, saveEyebrow, type TileData} from '../../components/Page';
 import {RLABEL, RarityTag} from '../../components/Rarity';
