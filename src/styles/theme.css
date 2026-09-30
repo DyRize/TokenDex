@@ -1,0 +1,95 @@
+/* Loaded last on every page: it restyles the base and page styles. */
+:root{
+  color-scheme: light;
+  --ground:#f2f2f7; --surface:#ffffff; --surface-2:#f5f5f7;
+  --line:#e3e3e8; --line-soft:#ededf2;
+  --ink:#1d1d1f; --ink-2:#55555b; --ink-3:#86868b;
+  --s3:#007aff; --brand:#e8472f; --hot:#d93d25; --hot-soft:#fdece8;
+  --r-common:#76767b; --r-uncommon:#248a3d; --r-rare:#007aff; --r-legendary:#c35f00; --r-new:#248a3d;
+  --glow:rgba(232,71,47,.10);
+  --shadow:0 1px 2px rgba(0,0,0,.05), 0 10px 30px -18px rgba(0,0,0,.25);
+  --f-ui:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif;
+  --f-round:ui-rounded,"SF Pro Rounded","Nunito",-apple-system,system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --ground:#1c1c1e; --surface:#2a2a2d; --surface-2:#323235;
+    --line:#3a3a3e; --line-soft:#333336;
+    --ink:#f5f5f7; --ink-2:#b0b0b6; --ink-3:#8e8e93;
+    --s3:#0a84ff; --brand:#f05138; --hot:#ff6a55; --hot-soft:#3a2522;
+    --r-common:#a1a1a6; --r-uncommon:#30d158; --r-rare:#409cff; --r-legendary:#ff9f0a; --r-new:#30d158;
+    --glow:rgba(240,81,56,.16);
+    --shadow:0 1px 2px rgba(0,0,0,.35), 0 12px 32px -16px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --ground:#1c1c1e; --surface:#2a2a2d; --surface-2:#323235;
+  --line:#3a3a3e; --line-soft:#333336;
+  --ink:#f5f5f7; --ink-2:#b0b0b6; --ink-3:#8e8e93;
+  --s3:#0a84ff; --brand:#f05138; --hot:#ff6a55; --hot-soft:#3a2522;
+  --r-common:#a1a1a6; --r-uncommon:#30d158; --r-rare:#409cff; --r-legendary:#ff9f0a; --r-new:#30d158;
+  --glow:rgba(240,81,56,.16);
+  --shadow:0 1px 2px rgba(0,0,0,.35), 0 12px 32px -16px rgba(0,0,0,.6);
+}
+
+body{font-family:var(--f-ui); font-variant-numeric:tabular-nums;
+  background:radial-gradient(1100px 420px at 88% -140px, var(--glow), transparent 70%) no-repeat, var(--ground);}
+h1,h2,h3,.big,.spoiler .reveal,.tip .th{font-family:var(--f-round);}
+h1{font-weight:800; letter-spacing:-.015em;}
+h2{font-weight:700;}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace!important;}
+.eyebrow,.k,label.cap,table.list th,.ctl label,.tile .k{font-weight:600; letter-spacing:.06em;}
+header .eyebrow{display:inline-flex; align-items:center; gap:7px;}
+header .eyebrow::before{content:""; width:15px; height:15px; flex:none; background:var(--brand);
+  -webkit-mask:var(--ball) center/contain no-repeat; mask:var(--ball) center/contain no-repeat;}
+:root{--ball:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0Zm5.9 9H10.8a3 3 0 0 1-5.6 0H2.1a6 6 0 0 0 11.8 0Zm0-2a6 6 0 0 0-11.8 0h3.1a3 3 0 0 1 5.6 0ZM8 6.6a1.4 1.4 0 1 0 0 2.8 1.4 1.4 0 0 0 0-2.8Z'/%3E%3C/svg%3E");}
+a{text-decoration-thickness:1px; text-underline-offset:2px;}
+
+.panel{border-radius:16px; border-color:var(--line-soft);}
+.tiles{border-radius:12px;}
+.tile .v{font-size:19px;}
+.btn,.mode,.chip,.filters input[type=search],.filters select,.settings input{font-family:var(--f-ui)!important;}
+.btn{border-radius:8px;}
+a.btn{display:inline-block; text-decoration:none;}
+body.live .manual,body:not(.live) .live-only{display:none!important;}
+.btn.primary{background:var(--brand); border-color:var(--brand); color:#fff;}
+.btn.primary:hover{background:color-mix(in srgb, var(--brand) 88%, #000);}
+.btn:hover{border-color:var(--line); background:var(--line-soft);}
+.mode{border-radius:10px;}
+.mode.on{background:var(--s3); border-color:var(--s3); color:#fff; box-shadow:none;}
+.mode.on em{color:rgba(255,255,255,.82);}
+.chip{display:inline-flex; align-items:center; gap:6px;}
+.chip::before{content:""; width:7px; height:7px; border-radius:50%; background:var(--c,var(--ink-3)); opacity:.45;}
+.chip.on::before{opacity:1;}
+.tag{border:0; color:#fff; background:color-mix(in srgb, var(--c) 82%, #000); font:700 10px/1.7 var(--f-ui);
+  letter-spacing:.05em; text-transform:uppercase; padding:1px 8px;}
+.note{border-left-color:var(--brand);}
+input[type=range]{accent-color:var(--s3);}
+
+.poke img{transition:transform .15s ease;}
+table.list tbody tr:hover td{background:var(--surface-2);}
+table.list tbody tr:hover .poke img{transform:scale(1.25);}
+
+header{position:relative; padding-right:150px; overflow-x:clip;}
+.mascot{position:absolute; right:0; top:4px; width:128px; height:128px; border-radius:50%; pointer-events:none;
+  display:grid; place-items:center;
+  background:
+    radial-gradient(circle at 50% 50%, var(--surface) 0 13px, var(--line) 13px 17px, transparent 17px),
+    linear-gradient(to bottom, transparent calc(50% - 2px), var(--line) calc(50% - 2px) calc(50% + 2px), transparent calc(50% + 2px)),
+    linear-gradient(to bottom, color-mix(in srgb, var(--brand) 16%, var(--surface)) 50%, var(--surface) 50%);
+  box-shadow:inset 0 0 0 4px var(--line), var(--shadow);}
+.mascot img{width:96px; height:96px; object-fit:contain; image-rendering:pixelated; animation:bob 2.6s ease-in-out infinite;
+  filter:drop-shadow(0 4px 3px rgba(0,0,0,.25)); margin-top:-18px;}
+.mascot.egg img{width:96px; height:96px; margin-top:-8px; scale:2.3; transform-origin:50% 64%; animation:wobble 3.2s ease-in-out infinite;}
+@keyframes bob{0%,100%{translate:0 0} 50%{translate:0 -5px}}
+@keyframes wobble{0%,70%,100%{rotate:0deg} 76%{rotate:-9deg} 82%{rotate:8deg} 88%{rotate:-5deg} 94%{rotate:3deg}}
+@media (prefers-reduced-motion: reduce){ .mascot img{animation:none} .poke img{transition:none} }
+@media (max-width:640px){
+  header{padding-right:0;}
+  .mascot{width:76px; height:76px; top:-6px; box-shadow:inset 0 0 0 3px var(--line);}
+  .mascot img{width:60px; height:60px; margin-top:-10px;}
+  .mascot.egg img{width:60px; height:60px; margin-top:-4px;}
+  header h1,header .eyebrow{padding-right:84px;}
+}
