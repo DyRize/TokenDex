@@ -53,7 +53,6 @@ a{text-decoration-thickness:1px; text-underline-offset:2px;}
 .btn,.mode,.chip,.filters input[type=search],.filters select,.settings input{font-family:var(--f-ui)!important;}
 .btn{border-radius:8px;}
 a.btn{display:inline-block; text-decoration:none;}
-body.live .manual,body:not(.live) .live-only{display:none!important;}
 .btn.primary{background:var(--brand); border-color:var(--brand); color:#fff;}
 .btn.primary:hover{background:color-mix(in srgb, var(--brand) 88%, #000);}
 .btn:hover{border-color:var(--line); background:var(--line-soft);}

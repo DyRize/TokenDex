@@ -264,11 +264,11 @@ function App() {
       <section class="panel" aria-label={tr('Ta sauvegarde', 'Your save')}>
         {sv ? <SaveTiles sv={sv} /> : <NoSave />}
         {!live && <>
-          <div class="save-row manual">
+          <div class="save-row">
             <a class="btn" href="index.html">{save ? tr('Changer de sauvegarde', 'Change save') : tr('Charger ma sauvegarde', 'Load my save')}</a>
             <span class="hint">{tr('La sauvegarde se charge depuis l\'accueil et sert à toutes les pages.', 'The save is loaded from the home page and feeds every page.')}</span>
           </div>
-          <div class="settings manual">
+          <div class="settings">
             <label><span>{tr('Croissance', 'Growth')}</span> <input type="number" min="10" max="200" step="5" value={settings.g} onChange={onSettings('g')} /> %</label>
             <label><span>{tr('Boutique', 'Shop')}</span> <input type="number" min="10" max="200" step="5" value={settings.s} onChange={onSettings('s')} /> %</label>
             <span class="hint">{tr('Tes réglages de l\'app : ils ne sont pas dans la sauvegarde, ils servent aux prix et à la croissance.', 'Your app settings: they are not in the save, they drive prices and growth.')}</span>

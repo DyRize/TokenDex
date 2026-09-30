@@ -272,7 +272,7 @@ function App() {
       <section class="panel" aria-label={tr('Ta sauvegarde', 'Your save')}>
         {hs ? <Tiles items={saveTiles(hs, charm, charmFrom)} /> : <NoSave />}
         {!live && (
-          <div class="save-row manual">
+          <div class="save-row">
             <a class="btn" href="index.html">{save ? tr('Changer de sauvegarde', 'Change save') : tr('Charger ma sauvegarde', 'Load my save')}</a>
             <span class="hint">{tr('La sauvegarde se charge depuis l\'accueil et sert à toutes les pages. Rien ne sort de ton navigateur.', 'The save is loaded from the home page and feeds every page. Nothing leaves your browser.')}</span>
           </div>
