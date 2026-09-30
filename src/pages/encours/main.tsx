@@ -30,10 +30,10 @@ function projectEta(need: number, prof: number[], now: Date) {
 }
 const fmtEta = (d: Date, now: Date) => {
   const days = Math.round((new Date(d).setHours(0, 0, 0, 0) - new Date(now).setHours(0, 0, 0, 0)) / 864e5);
-  const hh = LANG === 'fr' ? d.toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'}).replace(':', ' h ')
+  const hh = LANG === 'fr' ? d.toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'}).replace(':', '\u00a0h\u00a0')
     : d.toLocaleTimeString('en-US', {hour: 'numeric', minute: '2-digit'});
-  if (days === 0) return tr(`aujourd'hui vers ${hh}`, `today around ${hh}`);
-  if (days === 1) return tr(`demain vers ${hh}`, `tomorrow around ${hh}`);
+  if (days === 0) return tr(`aujourd'hui vers\u00a0${hh}`, `today around ${hh}`);
+  if (days === 1) return tr(`demain vers\u00a0${hh}`, `tomorrow around ${hh}`);
   if (days < 7) return `${d.toLocaleDateString(LOCALE, {weekday: 'long'})} ${tr('vers', 'around')} ${hh}`;
   return `${tr('vers le', 'around')} ${d.toLocaleDateString(LOCALE, {day: 'numeric', month: 'long'})}`;
 };
