@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="i18n.js"></script>
+<title data-en="Hunt journal · TokenDex">Journal de chasse · TokenDex</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2714%27 fill=%27%23fff%27 stroke=%27%231c1c1e%27 stroke-width=%273%27/%3E%3Cpath d=%27M2 16a14 14 0 0 1 28 0Z%27 fill=%27%23f05138%27 stroke=%27%231c1c1e%27 stroke-width=%273%27/%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%274.5%27 fill=%27%23fff%27 stroke=%27%231c1c1e%27 stroke-width=%273%27/%3E%3C/svg%3E">
+<style>
+:root{
+  color-scheme: light;
+  --ground:#eef1f6; --surface:#fbfcfe; --surface-2:#f4f6fa;
+  --line:#dde2ec; --line-soft:#e9edf4;
+  --ink:#0e1117; --ink-2:#535b6a; --ink-3:#878f9e;
+  --s3:#2a78d6; --hot:#c0392f; --hot-soft:#f6e3e1;
+  --r-common:#6b7383; --r-uncommon:#1f8a70; --r-rare:#2a78d6; --r-legendary:#b86e00; --r-new:#1f8a70;
+  --shadow:0 1px 2px rgba(14,17,23,.06), 0 8px 24px -12px rgba(14,17,23,.14);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --ground:#0f1115; --surface:#171a20; --surface-2:#1d2129;
+    --line:#2b303a; --line-soft:#232830;
+    --ink:#eff2f7; --ink-2:#a5adbb; --ink-3:#737b89;
+    --s3:#3987e5; --hot:#e8756a; --hot-soft:#33211f;
+    --r-common:#9aa2b1; --r-uncommon:#4cc3a0; --r-rare:#6da7ec; --r-legendary:#f0a53a; --r-new:#4cc3a0;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 28px -14px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --ground:#0f1115; --surface:#171a20; --surface-2:#1d2129;
+  --line:#2b303a; --line-soft:#232830;
+  --ink:#eff2f7; --ink-2:#a5adbb; --ink-3:#737b89;
+  --s3:#3987e5; --hot:#e8756a; --hot-soft:#33211f;
+  --r-common:#9aa2b1; --r-uncommon:#4cc3a0; --r-rare:#6da7ec; --r-legendary:#f0a53a; --r-new:#4cc3a0;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 28px -14px rgba(0,0,0,.7);
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--ground); color:var(--ink); margin:0;
+  font-family:var(--f-ui); font-size:15px; line-height:1.6;}
+.wrap{max-width:1000px; margin:0 auto; padding:40px 16px 64px; display:flex; flex-direction:column; gap:24px;}
+h1,h2{font-family:var(--f-round); text-wrap:balance; margin:0;}
+h1{font-size:clamp(30px,5.5vw,46px); font-weight:700; letter-spacing:-.022em; line-height:1.06;}
+h2{font-size:19px; font-weight:600; letter-spacing:-.01em;}
+p{margin:0}
+a{color:var(--s3)}
+.lede{color:var(--ink-2); max-width:64ch; font-size:16px;}
+.eyebrow,.k,label.cap{font-family:var(--f-ui); font-size:11px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink-3);}
+.mono{font-family:var(--f-ui); font-variant-numeric:tabular-nums;}
+header{display:flex; flex-direction:column; gap:12px;}
+.panel{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:20px; box-shadow:var(--shadow);
+  display:flex; flex-direction:column; gap:14px; min-width:0;}
+.panel-head{display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 14px;}
+.panel-head p{color:var(--ink-2); font-size:13.5px; flex:1 1 320px; min-width:0;}
+
+.tiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:1px; background:var(--line);
+  border:1px solid var(--line); border-radius:10px; overflow:hidden;}
+.tile{background:var(--surface-2); padding:12px; display:flex; flex-direction:column; gap:2px; min-width:0;}
+.tile .v{font-family:var(--f-ui); font-size:18px; font-weight:600; font-variant-numeric:tabular-nums;}
+.tile .s{font-size:12px; color:var(--ink-3); font-family:var(--f-ui);}
+.tile.leg .v{color:var(--r-legendary)}
+
+.save-row{display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; font-size:13.5px; color:var(--ink-2);}
+.btn{font:600 13.5px var(--f-ui); color:var(--ink); background:var(--surface-2); border:1px solid var(--line);
+  border-radius:9px; padding:7px 12px; cursor:pointer;}
+.btn:hover{border-color:var(--s3)}
+.btn:focus-visible,.mode:focus-visible,.chip:focus-visible{outline:2px solid var(--s3); outline-offset:2px;}
+.hint{font-size:12px; color:var(--ink-3);}
+.hint code,.note code{font-family:var(--f-ui); font-size:.95em; background:var(--surface-2); padding:1px 5px; border-radius:4px;}
+
+.modes{display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:8px;}
+.mode{font:600 14px var(--f-ui); color:var(--ink-2); background:var(--surface-2); border:1px solid var(--line);
+  border-radius:10px; padding:10px 12px; cursor:pointer; text-align:left; display:flex; flex-direction:column; gap:2px; line-height:1.25;}
+.mode em{font-style:normal; font-family:var(--f-ui); font-size:11px; color:var(--ink-3);}
+.mode:hover{border-color:var(--s3); color:var(--ink)}
+.mode.on{background:var(--surface); border-color:var(--s3); color:var(--ink); box-shadow:inset 0 0 0 1px var(--s3);}
+.mode.on em{color:var(--s3)}
+
+.note{border-left:3px solid var(--hot); background:var(--hot-soft); padding:12px 16px; border-radius:0 10px 10px 0;
+  font-size:13.5px; color:var(--ink-2);}
+.note b{color:var(--ink)}
+.spoiler{display:flex; flex-wrap:wrap; gap:10px 14px; align-items:center;}
+.spoiler .reveal{font-family:var(--f-round); font-size:20px; font-weight:700; color:var(--ink);}
+
+.ctl{display:flex; flex-direction:column; gap:4px; max-width:420px;}
+.ctl-top{display:flex; justify-content:space-between; align-items:baseline;}
+.ctl output{font-family:var(--f-ui); font-size:17px; font-weight:600;}
+input[type=range]{width:100%; accent-color:var(--s3); margin:0; height:22px;}
+
+.filters{display:flex; flex-wrap:wrap; gap:8px 10px; align-items:center;}
+.filters input[type=search]{font:14px var(--f-ui); color:var(--ink); background:var(--surface-2);
+  border:1px solid var(--line); border-radius:9px; padding:7px 10px; min-width:0; flex:1 1 180px;}
+.filters select{font:14px var(--f-ui); color:var(--ink); background:var(--surface-2);
+  border:1px solid var(--line); border-radius:9px; padding:7px 8px;}
+.chip{font:600 12.5px var(--f-ui); border:1px solid var(--line); background:var(--surface-2); color:var(--ink-3);
+  border-radius:99px; padding:5px 11px; cursor:pointer;}
+.chip.on{color:var(--c); border-color:var(--c); background:color-mix(in srgb, var(--c) 12%, transparent);}
+.check{display:inline-flex; gap:6px; align-items:center; font-size:13.5px; color:var(--ink-2); cursor:pointer;}
+.check input{accent-color:var(--s3)}
+.settings{display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; font-size:13.5px; color:var(--ink-2);}
+.settings input{width:4.5em; font:14px var(--f-ui); color:var(--ink); background:var(--surface-2); border:1px solid var(--line); border-radius:8px; padding:5px 8px;}
+.empty{font-size:15px; color:var(--ink-2);}
+.empty b{color:var(--ink)}
+
+.scroller{overflow-x:auto; margin-inline:-4px; padding-inline:4px;}
+table.list{border-collapse:collapse; width:100%; font-size:13.5px; min-width:560px;}
+table.list th{font-family:var(--f-ui); font-weight:400; font-size:10.5px; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--ink-3); text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); white-space:nowrap;}
+table.list td{padding:5px 8px; border-bottom:1px solid var(--line-soft); vertical-align:middle;}
+table.list td.num,table.list th.num{text-align:right; font-family:var(--f-ui); font-variant-numeric:tabular-nums; white-space:nowrap;}
+table.list tr.done td{color:var(--ink-3)}
+.poke{display:flex; align-items:center; gap:8px; min-width:0;}
+.poke img{width:40px; height:40px; image-rendering:pixelated; flex:none; margin:-4px 0;}
+.poke .id{font-family:var(--f-ui); font-size:11px; color:var(--ink-3); width:3.2em; flex:none;}
+.poke .nm{font-weight:600; white-space:nowrap}
+tr.done .nm{font-weight:400}
+.tag{font:600 11px var(--f-ui); color:var(--c); border:1px solid color-mix(in srgb, var(--c) 45%, transparent);
+  background:color-mix(in srgb, var(--c) 10%, transparent); border-radius:99px; padding:1px 8px; white-space:nowrap;}
+.st{font-size:12px; white-space:nowrap}
+.st.new{color:var(--r-new); font-weight:600}
+.st.cur{color:var(--s3); font-weight:600}
+.bar{display:flex; align-items:center; gap:8px; justify-content:flex-end;}
+.bar i{display:block; height:6px; border-radius:3px; background:var(--s3); min-width:1px;}
+.bar .track{width:70px; flex:none; display:flex; justify-content:flex-start;}
+.shiny{color:var(--r-legendary)}
+.half{color:var(--ink-3); font-size:11px}
+.count{font-size:12.5px; color:var(--ink-3)}
+@media(max-width:640px){ .hide-sm,.bar .track{display:none} table.list{min-width:0} table.list td,table.list th{padding-inline:5px} .poke .id{display:none} }
+
+footer{color:var(--ink-3); font-size:12.5px; border-top:1px solid var(--line); padding-top:18px; display:flex; flex-direction:column; gap:6px;}
+footer code{font-family:var(--f-ui); color:var(--ink-2); font-size:11.5px;}
+</style>
+<style id="ptb-theme">
+:root{
+  color-scheme: light;
+  --ground:#f2f2f7; --surface:#ffffff; --surface-2:#f5f5f7;
+  --line:#e3e3e8; --line-soft:#ededf2;
+  --ink:#1d1d1f; --ink-2:#55555b; --ink-3:#86868b;
+  --s3:#007aff; --brand:#e8472f; --hot:#d93d25; --hot-soft:#fdece8;
+  --r-common:#76767b; --r-uncommon:#248a3d; --r-rare:#007aff; --r-legendary:#c35f00; --r-new:#248a3d;
+  --glow:rgba(232,71,47,.10);
+  --shadow:0 1px 2px rgba(0,0,0,.05), 0 10px 30px -18px rgba(0,0,0,.25);
+  --f-ui:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif;
+  --f-round:ui-rounded,"SF Pro Rounded","Nunito",-apple-system,system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --ground:#1c1c1e; --surface:#2a2a2d; --surface-2:#323235;
+    --line:#3a3a3e; --line-soft:#333336;
+    --ink:#f5f5f7; --ink-2:#b0b0b6; --ink-3:#8e8e93;
+    --s3:#0a84ff; --brand:#f05138; --hot:#ff6a55; --hot-soft:#3a2522;
+    --r-common:#a1a1a6; --r-uncommon:#30d158; --r-rare:#409cff; --r-legendary:#ff9f0a; --r-new:#30d158;
+    --glow:rgba(240,81,56,.16);
+    --shadow:0 1px 2px rgba(0,0,0,.35), 0 12px 32px -16px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --ground:#1c1c1e; --surface:#2a2a2d; --surface-2:#323235;
+  --line:#3a3a3e; --line-soft:#333336;
+  --ink:#f5f5f7; --ink-2:#b0b0b6; --ink-3:#8e8e93;
+  --s3:#0a84ff; --brand:#f05138; --hot:#ff6a55; --hot-soft:#3a2522;
+  --r-common:#a1a1a6; --r-uncommon:#30d158; --r-rare:#409cff; --r-legendary:#ff9f0a; --r-new:#30d158;
+  --glow:rgba(240,81,56,.16);
+  --shadow:0 1px 2px rgba(0,0,0,.35), 0 12px 32px -16px rgba(0,0,0,.6);
+}
+
+body{font-family:var(--f-ui); font-variant-numeric:tabular-nums;
+  background:radial-gradient(1100px 420px at 88% -140px, var(--glow), transparent 70%) no-repeat, var(--ground);}
+h1,h2,h3,.big,.spoiler .reveal,.tip .th{font-family:var(--f-round);}
+h1{font-weight:800; letter-spacing:-.015em;}
+h2{font-weight:700;}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace!important;}
+.eyebrow,.k,label.cap,table.list th,.ctl label,.tile .k{font-weight:600; letter-spacing:.06em;}
+header .eyebrow{display:inline-flex; align-items:center; gap:7px;}
+header .eyebrow::before{content:""; width:15px; height:15px; flex:none; background:var(--brand);
+  -webkit-mask:var(--ball) center/contain no-repeat; mask:var(--ball) center/contain no-repeat;}
+:root{--ball:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0Zm5.9 9H10.8a3 3 0 0 1-5.6 0H2.1a6 6 0 0 0 11.8 0Zm0-2a6 6 0 0 0-11.8 0h3.1a3 3 0 0 1 5.6 0ZM8 6.6a1.4 1.4 0 1 0 0 2.8 1.4 1.4 0 0 0 0-2.8Z'/%3E%3C/svg%3E");}
+a{text-decoration-thickness:1px; text-underline-offset:2px;}
+
+.panel{border-radius:16px; border-color:var(--line-soft);}
+.tiles{border-radius:12px;}
+.tile .v{font-size:19px;}
+.btn,.mode,.chip,.filters input[type=search],.filters select,.settings input{font-family:var(--f-ui)!important;}
+.btn{border-radius:8px;}
+a.btn{display:inline-block; text-decoration:none;}
+body.live .manual,body:not(.live) .live-only{display:none!important;}
+.btn.primary{background:var(--brand); border-color:var(--brand); color:#fff;}
+.btn.primary:hover{background:color-mix(in srgb, var(--brand) 88%, #000);}
+.btn:hover{border-color:var(--line); background:var(--line-soft);}
+.mode{border-radius:10px;}
+.mode.on{background:var(--s3); border-color:var(--s3); color:#fff; box-shadow:none;}
+.mode.on em{color:rgba(255,255,255,.82);}
+.chip{display:inline-flex; align-items:center; gap:6px;}
+.chip::before{content:""; width:7px; height:7px; border-radius:50%; background:var(--c,var(--ink-3)); opacity:.45;}
+.chip.on::before{opacity:1;}
+.tag{border:0; color:#fff; background:color-mix(in srgb, var(--c) 82%, #000); font:700 10px/1.7 var(--f-ui);
+  letter-spacing:.05em; text-transform:uppercase; padding:1px 8px;}
+.note{border-left-color:var(--brand);}
+input[type=range]{accent-color:var(--s3);}
+
+.poke img{transition:transform .15s ease;}
+table.list tbody tr:hover td{background:var(--surface-2);}
+table.list tbody tr:hover .poke img{transform:scale(1.25);}
+
+header{position:relative; padding-right:150px; overflow-x:clip;}
+.mascot{position:absolute; right:0; top:4px; width:128px; height:128px; border-radius:50%; pointer-events:none;
+  display:grid; place-items:center;
+  background:
+    radial-gradient(circle at 50% 50%, var(--surface) 0 13px, var(--line) 13px 17px, transparent 17px),
+    linear-gradient(to bottom, transparent calc(50% - 2px), var(--line) calc(50% - 2px) calc(50% + 2px), transparent calc(50% + 2px)),
+    linear-gradient(to bottom, color-mix(in srgb, var(--brand) 16%, var(--surface)) 50%, var(--surface) 50%);
+  box-shadow:inset 0 0 0 4px var(--line), var(--shadow);}
+.mascot img{width:96px; height:96px; object-fit:contain; image-rendering:pixelated; animation:bob 2.6s ease-in-out infinite;
+  filter:drop-shadow(0 4px 3px rgba(0,0,0,.25)); margin-top:-18px;}
+.mascot.egg img{width:96px; height:96px; margin-top:-8px; scale:2.3; transform-origin:50% 64%; animation:wobble 3.2s ease-in-out infinite;}
+@keyframes bob{0%,100%{translate:0 0} 50%{translate:0 -5px}}
+@keyframes wobble{0%,70%,100%{rotate:0deg} 76%{rotate:-9deg} 82%{rotate:8deg} 88%{rotate:-5deg} 94%{rotate:3deg}}
+@media (prefers-reduced-motion: reduce){ .mascot img{animation:none} .poke img{transition:none} }
+@media (max-width:640px){
+  header{padding-right:0;}
+  .mascot{width:76px; height:76px; top:-6px; box-shadow:inset 0 0 0 3px var(--line);}
+  .mascot img{width:60px; height:60px; margin-top:-10px;}
+  .mascot.egg img{width:60px; height:60px; margin-top:-4px;}
+  header h1,header .eyebrow{padding-right:84px;}
+}
+</style>
+<style>
+.chart{position:relative;}
+.chart svg{display:block; width:100%; height:auto; overflow:visible;}
+.tip{position:absolute; pointer-events:none; opacity:0; transition:opacity .09s; background:var(--surface); border:1px solid var(--line);
+  border-radius:9px; padding:8px 11px; box-shadow:var(--shadow); font-size:12px; max-width:260px; z-index:5;}
+.tip b{display:block; font-size:12.5px; margin-bottom:2px;}
+.legend{display:flex; flex-wrap:wrap; gap:6px 16px; font-size:12.5px; color:var(--ink-2);}
+.legend span{display:inline-flex; align-items:center; gap:7px;}
+.legend i{width:12px; height:12px; border-radius:3px; display:block;}
+.legend i.dot{border-radius:50%;}
+.day{display:flex; flex-direction:column; gap:6px;}
+.day-head{display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 12px; padding:4px 2px; border-bottom:1px solid var(--line);}
+.day-head h3{margin:0; font-size:15px; font-weight:700;}
+.day-head h3::first-letter{text-transform:uppercase;}
+.day-head span{font-size:12.5px; color:var(--ink-3);}
+.cap-row{display:grid; grid-template-columns:52px minmax(0,1fr) auto; gap:12px; align-items:center; padding:6px 2px; border-bottom:1px solid var(--line-soft);}
+.cap-row img{width:52px; height:52px; image-rendering:pixelated; margin:-4px 0;}
+.cap-row .nm{font-weight:600; display:flex; flex-wrap:wrap; gap:4px 8px; align-items:center;}
+.cap-row .chain{font-size:12.5px; color:var(--ink-3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.cap-row .when{text-align:right; font-size:12.5px; color:var(--ink-2); white-space:nowrap;}
+.cap-row .when b{display:block; color:var(--ink); font-size:14px;}
+.flag{font:700 10px/1.7 var(--f-ui); letter-spacing:.05em; text-transform:uppercase; border-radius:99px; padding:0 7px; border:1px solid var(--line); color:var(--ink-3);}
+.flag.shiny{color:var(--r-legendary); border-color:color-mix(in srgb, var(--r-legendary) 50%, transparent);}
+.flag.ditto{color:#c77dff; border-color:color-mix(in srgb, #c77dff 50%, transparent);}
+.days{display:flex; flex-direction:column; gap:18px;}
+</style>
+</head>
+<body>
+<script src="nav.js"></script>
+<div class="wrap">
+
+<header>
+  <div class="mascot egg" id="mascot" aria-hidden="true"><img alt="" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/egg.png"></div>
+  <span class="eyebrow" id="eyebrow">TokenDex · d'après ta sauvegarde</span>
+  <h1 data-en="Hunt journal">Journal de chasse</h1>
+  <p class="lede" data-en="All your graduations in order, with the time and tokens each one took, and your token use day by day.">Toutes tes graduations dans l'ordre, avec le temps et les tokens qu'a demandés chacune, et ta consommation de tokens jour par jour.</p>
+</header>
+
+<section class="panel" id="emptyPanel" hidden>
+  <p class="empty" data-en="<b>No save loaded.</b> Load it from the <a href='index.html'>home page</a>: every page then uses it."><b>Aucune sauvegarde chargée.</b> Charge-la depuis l'<a href="index.html">accueil</a> : elle sert ensuite à toutes les pages.</p>
+</section>
+
+<div id="app" style="display:contents" hidden>
+<section class="panel" aria-label="Records">
+  <div class="tiles" id="tiles"></div>
+</section>
+
+<section class="panel" aria-label="Tokens et graduations par jour" data-en-aria-label="Tokens and graduations per day" id="chartPanel">
+  <div class="panel-head"><h2 data-en="Day by day">Jour après jour</h2><p data-en="Tokens burnt each day, with the number of graduations on top. Hover a day to see who arrived.">Tokens brûlés chaque jour, et le nombre de graduations au-dessus. Survole un jour pour voir qui est arrivé.</p></div>
+  <div class="legend"><span data-en="<i style='background:var(--s3)'></i>Tokens that day"><i style="background:var(--s3)"></i>Tokens du jour</span><span><i class="dot" style="background:var(--brand)"></i>Graduations</span></div>
+  <div class="chart"><svg id="daily" viewBox="0 0 900 240" role="img" aria-label="Tokens et graduations par jour" data-en-aria-label="Tokens and graduations per day"></svg><div class="tip" id="tip"></div></div>
+</section>
+
+<section class="panel" aria-label="Captures" data-en-aria-label="Graduations">
+  <div class="panel-head"><h2 data-en="Graduations">Les graduations</h2><p id="listHint"></p></div>
+  <div class="days" id="days"></div>
+</section>
+</div>
+
+<footer>
+  <p data-en="Each row is a Pokédex entry from your save, dated at graduation. The duration is the gap since the previous graduation, egg included; the tokens are the ones burnt in that gap, from the app's hour by hour history (local server). A graduation in under a minute is almost always Rare Candies: they grow a Pokémon without burning tokens.">Chaque ligne est une entrée du Pokédex de ta sauvegarde, datée à la graduation. La durée est l'écart avec la graduation précédente, œuf compris ; les tokens sont ceux brûlés dans cet intervalle, d'après l'historique heure par heure de l'app (serveur local). Une graduation en moins d'une minute, c'est presque toujours des bonbons : ils font grandir sans brûler de tokens.</p>
+</footer>
+</div>
+
+<script src="save.js"></script>
+<script src="dex-data.js"></script>
+<script>
+translatePage();
+const $ = id => document.getElementById(id);
+const RLABEL = {common: tr('Commun', 'Common'), uncommon: tr('Peu commun', 'Uncommon'), rare: 'Rare', legendary: tr('Légendaire', 'Legendary')};
+const RCOLOR = {common: '--r-common', uncommon: '--r-uncommon', rare: '--r-rare', legendary: '--r-legendary'};
+const SPR = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/';
+const dayKey = t => hourKey(new Date(t)).slice(0, 10);
+const fmtDur = ms => { const m = Math.round(ms / 60e3); return m < 1 ? '< 1 min' : m < 60 ? `${m} min` : m < 2880 ? tr(`${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}`, `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}m`) : `${Math.round(m / 1440)} ${tr('jours', 'days')}`; };
+const fmtDayLong = t => new Date(t).toLocaleDateString(LOCALE, {weekday: 'long', day: 'numeric', month: 'long'});
+const fmtDayShort = t => new Date(t).toLocaleDateString(LOCALE, {day: 'numeric', month: 'short'});
+let save = null, hours = null;
+
+// Tokens burnt between two instants, spreading each hour's total evenly over the hour.
+function tokensBetween(t0, t1) {
+  let sum = 0;
+  const h = new Date(t0); h.setMinutes(0, 0, 0);
+  for (; h.getTime() < t1; h.setHours(h.getHours() + 1)) {
+    const a = Math.max(t0, h.getTime()), b = Math.min(t1, h.getTime() + 3600e3);
+    if (b > a) sum += (hours[hourKey(h)] || 0) * (b - a) / 3600e3;
+  }
+  return sum;
+}
+
+function captures(st) {
+  const list = st.dex.filter(d => d.caughtAt && !d.releasedAt).sort((a, b) => a.caughtAt - b.caughtAt);
+  const seen = new Set();
+  return list.map((d, i) => {
+    const prev = i ? list[i - 1].caughtAt : null, finalId = d.chain.filter(id => id <= 649).pop() || d.finalID;
+    const c = {d, finalId, name: withForm(NAMES[finalId - 1] || d.names[finalId], finalId, d.unownForm), at: d.caughtAt,
+      dupe: d.chain.every(id => seen.has(spriteID(id, d.unownForm))),
+      dur: prev ? d.caughtAt - prev : null, tokens: prev && hours ? tokensBetween(prev, d.caughtAt) : null};
+    d.chain.forEach(id => seen.add(spriteID(id, d.unownForm)));
+    return c;
+  });
+}
+
+function render() {
+  const v = save; setMascot(v);
+  $('emptyPanel').hidden = !!v; $('app').hidden = !v;
+  if (!v) { $('eyebrow').textContent = tr('TokenDex · aucune sauvegarde chargée', 'TokenDex · no save loaded'); return; }
+  $('eyebrow').textContent = tr(`TokenDex · d'après ta sauvegarde du ${fmtSaveDate(v.at)}`, `TokenDex · from your save of ${fmtSaveDate(v.at)}`);
+  const caps = captures(v.st), timed = caps.filter(c => c.dur != null);
+  const byDay = new Map();
+  for (const c of caps) { const k = dayKey(c.at); if (!byDay.has(k)) byDay.set(k, []); byDay.get(k).push(c); }
+  const dayTokens = {};
+  if (hours) for (const [k, n] of Object.entries(hours)) dayTokens[k.slice(0, 10)] = (dayTokens[k.slice(0, 10)] || 0) + n;
+
+  const bestDay = [...byDay.entries()].sort((a, b) => b[1].length - a[1].length)[0];
+  const fastest = timed.slice().sort((a, b) => a.dur - b.dur)[0];
+  const bigDay = Object.entries(dayTokens).sort((a, b) => b[1] - a[1])[0];
+  const withTok = timed.filter(c => c.tokens != null);
+  const tiles = [
+    ['Graduations', String(caps.length), tr(`dont ${caps.filter(c => c.dupe).length} doublons`, `${caps.filter(c => c.dupe).length} of them duplicates`)],
+    [tr('Record en un jour', 'Best day'), bestDay ? `${bestDay[1].length} graduations` : '—', bestDay ? fmtDayShort(bestDay[1][0].at) : ''],
+    [tr('La plus rapide', 'Fastest'), fastest ? fmtDur(fastest.dur) : '—', fastest ? fastest.name : ''],
+  ];
+  if (bigDay) tiles.push([tr('Record de tokens', 'Most tokens in a day'), tok(bigDay[1]), fmtDayShort(Date.parse(bigDay[0] + 'T12:00'))]);
+  if (withTok.length) tiles.push([tr('Coût moyen', 'Average cost'), tok(withTok.reduce((x, c) => x + c.tokens, 0) / withTok.length), tr('en tokens par graduation', 'in tokens per graduation')]);
+  $('tiles').innerHTML = tiles.map(([k, val, s]) => `<div class="tile"><span class="k">${k}</span><span class="v">${val}</span><span class="s">${s}</span></div>`).join('');
+
+  $('listHint').textContent = tr(`${caps.length} graduations, de la plus récente à la plus ancienne.`, `${caps.length} graduations, newest first.`);
+  $('days').innerHTML = [...byDay.entries()].reverse().map(([k, list]) => {
+    const t = dayTokens[k];
+    return `<div class="day"><div class="day-head"><h3>${fmtDayLong(list[0].at)}</h3><span>${list.length} graduation${list.length > 1 ? 's' : ''}${t ? ' · ' + tok(t) + tr(' brûlés', ' burnt') : ''}</span></div>`
+      + list.slice().reverse().map(c => {
+        const d = c.d, chain = d.chain.map(id => NAMES[id - 1] || d.names[id]).join(' → ');
+        const flags = [`<span class="tag" style="--c:var(${RCOLOR[d.rarity]})">${RLABEL[d.rarity]}</span>`];
+        if (d.baseID === 132) flags.push(`<span class="flag ditto">${NAMES[131]}</span>`);
+        if (d.isShiny) flags.push('<span class="flag shiny">Shiny ✦</span>');
+        if (c.dupe) flags.push(`<span class="flag">${tr('Doublon', 'Duplicate')}</span>`);
+        const time = new Date(c.at).toLocaleTimeString(LOCALE, {hour: '2-digit', minute: '2-digit'});
+        const meta = [c.dur != null ? `${tr('en', 'in')} ${fmtDur(c.dur)}` : tr('première', 'first'), c.tokens != null ? tok(c.tokens) : null].filter(Boolean).join(' · ');
+        return `<div class="cap-row"><img loading="lazy" alt="" src="${SPR}${d.isShiny ? 'shiny/' : ''}${spriteID(c.finalId, d.unownForm)}.png">`
+          + `<div style="min-width:0"><div class="nm">${c.name} ${flags.join('')}</div><div class="chain">${chain}</div></div>`
+          + `<div class="when"><b>${time}</b>${meta}</div></div>`;
+      }).join('') + '</div>';
+  }).join('');
+
+  $('chartPanel').hidden = !hours;
+  if (hours) drawDaily(byDay, dayTokens, caps);
+}
+
+function drawDaily(byDay, dayTokens, caps) {
+  const first = caps.length ? caps[0].at : Date.now(), days = [];
+  const d = new Date(Math.max(first, Date.now() - 45 * 864e5)); d.setHours(12, 0, 0, 0);
+  for (; d.getTime() <= Date.now() + 36e5; d.setDate(d.getDate() + 1)) days.push(hourKey(d).slice(0, 10));
+  const W = 900, H = 240, L = 50, R = 8, T = 26, B = 26, n = days.length, bw = (W - L - R) / n;
+  const max = Math.max(1, ...days.map(k => dayTokens[k] || 0)) * 1.08;
+  const y = v => T + (H - T - B) * (1 - v / max);
+  let svg = [0, max / 2, max].map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line-soft)"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end" font-size="11" fill="var(--ink-3)">${tok(v)}</text>`).join('');
+  days.forEach((k, i) => {
+    const x = L + i * bw, v = dayTokens[k] || 0, h = Math.max(0, H - B - y(v)), n2 = (byDay.get(k) || []).length;
+    svg += `<rect x="${x + 1}" y="${H - B - h}" width="${Math.max(1, bw - 2)}" height="${h}" rx="${Math.min(3, bw / 3)}" fill="var(--s3)"/>`;
+    if (n2) svg += `<circle cx="${x + bw / 2}" cy="${Math.min(H - B - h - 11, H - B - 11)}" r="${Math.min(9, 5 + n2)}" fill="var(--brand)" stroke="var(--surface)" stroke-width="2"/>`
+      + (n2 > 1 ? `<text x="${x + bw / 2}" y="${Math.min(H - B - h - 11, H - B - 11) + 3.5}" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">${n2}</text>` : '');
+    if (i % Math.ceil(n / 8) === 0) svg += `<text x="${x + bw / 2}" y="${H - 8}" text-anchor="middle" font-size="11" fill="var(--ink-3)">${fmtDayShort(Date.parse(k + 'T12:00'))}</text>`;
+    svg += `<rect class="hit" data-k="${k}" x="${x}" y="0" width="${bw}" height="${H - B}" fill="transparent"/>`;
+  });
+  $('daily').innerHTML = svg;
+  $('daily').onmousemove = e => {
+    const hit = e.target.closest('.hit'), tip = $('tip');
+    if (!hit) { tip.style.opacity = 0; return; }
+    const k = hit.dataset.k, list = byDay.get(k) || [], box = $('daily').getBoundingClientRect();
+    tip.innerHTML = `<b>${fmtDayLong(Date.parse(k + 'T12:00'))}</b>${tok(dayTokens[k] || 0)}${list.length ? '<br>' + list.map(c => c.name).join(', ') : ''}`;
+    tip.style.opacity = 1;
+    tip.style.left = Math.min(box.width - 260, Math.max(0, e.clientX - box.left + 12)) + 'px'; tip.style.top = (e.clientY - box.top - 50) + 'px';
+  };
+  $('daily').onmouseleave = () => { $('tip').style.opacity = 0; };
+}
+
+async function refresh() {
+  const [v, u] = await Promise.all([fetchServedSave(), fetchServedJSON('usage.json')]);
+  if (v) save = v;
+  if (u) hours = u.hours;
+  document.body.classList.toggle('live', !!v);
+  render();
+}
+save = readStoredSave();
+render();
+watchSave(v => { save = v; render(); });
+refresh();
+</script>
+</body>
+</html>

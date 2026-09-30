@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="i18n.js"></script>
+<title data-en="Your next Pokémon · TokenDex">Tes prochains Pokémon · TokenDex</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2714%27 fill=%27%23fff%27 stroke=%27%231c1c1e%27 stroke-width=%273%27/%3E%3Cpath d=%27M2 16a14 14 0 0 1 28 0Z%27 fill=%27%23f05138%27 stroke=%27%231c1c1e%27 stroke-width=%273%27/%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%274.5%27 fill=%27%23fff%27 stroke=%27%231c1c1e%27 stroke-width=%273%27/%3E%3C/svg%3E">
+<style>
+:root{
+  color-scheme: light;
+  --ground:#eef1f6; --surface:#fbfcfe; --surface-2:#f4f6fa;
+  --line:#dde2ec; --line-soft:#e9edf4;
+  --ink:#0e1117; --ink-2:#535b6a; --ink-3:#878f9e;
+  --s3:#2a78d6; --hot:#c0392f; --hot-soft:#f6e3e1;
+  --r-common:#6b7383; --r-uncommon:#1f8a70; --r-rare:#2a78d6; --r-legendary:#b86e00; --r-new:#1f8a70;
+  --shadow:0 1px 2px rgba(14,17,23,.06), 0 8px 24px -12px rgba(14,17,23,.14);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --ground:#0f1115; --surface:#171a20; --surface-2:#1d2129;
+    --line:#2b303a; --line-soft:#232830;
+    --ink:#eff2f7; --ink-2:#a5adbb; --ink-3:#737b89;
+    --s3:#3987e5; --hot:#e8756a; --hot-soft:#33211f;
+    --r-common:#9aa2b1; --r-uncommon:#4cc3a0; --r-rare:#6da7ec; --r-legendary:#f0a53a; --r-new:#4cc3a0;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 28px -14px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --ground:#0f1115; --surface:#171a20; --surface-2:#1d2129;
+  --line:#2b303a; --line-soft:#232830;
+  --ink:#eff2f7; --ink-2:#a5adbb; --ink-3:#737b89;
+  --s3:#3987e5; --hot:#e8756a; --hot-soft:#33211f;
+  --r-common:#9aa2b1; --r-uncommon:#4cc3a0; --r-rare:#6da7ec; --r-legendary:#f0a53a; --r-new:#4cc3a0;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 28px -14px rgba(0,0,0,.7);
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--ground); color:var(--ink); margin:0;
+  font-family:var(--f-ui); font-size:15px; line-height:1.6;}
+.wrap{max-width:1000px; margin:0 auto; padding:40px 16px 64px; display:flex; flex-direction:column; gap:24px;}
+h1,h2{font-family:var(--f-round); text-wrap:balance; margin:0;}
+h1{font-size:clamp(30px,5.5vw,46px); font-weight:700; letter-spacing:-.022em; line-height:1.06;}
+h2{font-size:19px; font-weight:600; letter-spacing:-.01em;}
+p{margin:0}
+a{color:var(--s3)}
+.lede{color:var(--ink-2); max-width:64ch; font-size:16px;}
+.eyebrow,.k,label.cap{font-family:var(--f-ui); font-size:11px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink-3);}
+.mono{font-family:var(--f-ui); font-variant-numeric:tabular-nums;}
+header{display:flex; flex-direction:column; gap:12px;}
+.panel{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:20px; box-shadow:var(--shadow);
+  display:flex; flex-direction:column; gap:14px; min-width:0;}
+.panel-head{display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 14px;}
+.panel-head p{color:var(--ink-2); font-size:13.5px; flex:1 1 320px; min-width:0;}
+
+.tiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:1px; background:var(--line);
+  border:1px solid var(--line); border-radius:10px; overflow:hidden;}
+.tile{background:var(--surface-2); padding:12px; display:flex; flex-direction:column; gap:2px; min-width:0;}
+.tile .v{font-family:var(--f-ui); font-size:18px; font-weight:600; font-variant-numeric:tabular-nums;}
+.tile .s{font-size:12px; color:var(--ink-3); font-family:var(--f-ui);}
+.tile.leg .v{color:var(--r-legendary)}
+
+.save-row{display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; font-size:13.5px; color:var(--ink-2);}
+.btn{font:600 13.5px var(--f-ui); color:var(--ink); background:var(--surface-2); border:1px solid var(--line);
+  border-radius:9px; padding:7px 12px; cursor:pointer;}
+.btn:hover{border-color:var(--s3)}
+.btn:focus-visible,.mode:focus-visible,.chip:focus-visible{outline:2px solid var(--s3); outline-offset:2px;}
+.hint{font-size:12px; color:var(--ink-3);}
+.hint code,.note code{font-family:var(--f-ui); font-size:.95em; background:var(--surface-2); padding:1px 5px; border-radius:4px;}
+
+.modes{display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:8px;}
+.mode{font:600 14px var(--f-ui); color:var(--ink-2); background:var(--surface-2); border:1px solid var(--line);
+  border-radius:10px; padding:10px 12px; cursor:pointer; text-align:left; display:flex; flex-direction:column; gap:2px; line-height:1.25;}
+.mode em{font-style:normal; font-family:var(--f-ui); font-size:11px; color:var(--ink-3);}
+.mode:hover{border-color:var(--s3); color:var(--ink)}
+.mode.on{background:var(--surface); border-color:var(--s3); color:var(--ink); box-shadow:inset 0 0 0 1px var(--s3);}
+.mode.on em{color:var(--s3)}
+
+.note{border-left:3px solid var(--hot); background:var(--hot-soft); padding:12px 16px; border-radius:0 10px 10px 0;
+  font-size:13.5px; color:var(--ink-2);}
+.note b{color:var(--ink)}
+.spoiler{display:flex; flex-wrap:wrap; gap:10px 14px; align-items:center;}
+.spoiler .reveal{font-family:var(--f-round); font-size:20px; font-weight:700; color:var(--ink);}
+
+.ctl{display:flex; flex-direction:column; gap:4px; max-width:420px;}
+.ctl-top{display:flex; justify-content:space-between; align-items:baseline;}
+.ctl output{font-family:var(--f-ui); font-size:17px; font-weight:600;}
+input[type=range]{width:100%; accent-color:var(--s3); margin:0; height:22px;}
+
+.filters{display:flex; flex-wrap:wrap; gap:8px 10px; align-items:center;}
+.filters input[type=search]{font:14px var(--f-ui); color:var(--ink); background:var(--surface-2);
+  border:1px solid var(--line); border-radius:9px; padding:7px 10px; min-width:0; flex:1 1 180px;}
+.filters select{font:14px var(--f-ui); color:var(--ink); background:var(--surface-2);
+  border:1px solid var(--line); border-radius:9px; padding:7px 8px;}
+.chip{font:600 12.5px var(--f-ui); border:1px solid var(--line); background:var(--surface-2); color:var(--ink-3);
+  border-radius:99px; padding:5px 11px; cursor:pointer;}
+.chip.on{color:var(--c); border-color:var(--c); background:color-mix(in srgb, var(--c) 12%, transparent);}
+.check{display:inline-flex; gap:6px; align-items:center; font-size:13.5px; color:var(--ink-2); cursor:pointer;}
+.check input{accent-color:var(--s3)}
+.settings{display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; font-size:13.5px; color:var(--ink-2);}
+.settings input{width:4.5em; font:14px var(--f-ui); color:var(--ink); background:var(--surface-2); border:1px solid var(--line); border-radius:8px; padding:5px 8px;}
+.empty{font-size:15px; color:var(--ink-2);}
+.empty b{color:var(--ink)}
+
+.scroller{overflow-x:auto; margin-inline:-4px; padding-inline:4px;}
+table.list{border-collapse:collapse; width:100%; font-size:13.5px; min-width:560px;}
+table.list th{font-family:var(--f-ui); font-weight:400; font-size:10.5px; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--ink-3); text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); white-space:nowrap;}
+table.list td{padding:5px 8px; border-bottom:1px solid var(--line-soft); vertical-align:middle;}
+table.list td.num,table.list th.num{text-align:right; font-family:var(--f-ui); font-variant-numeric:tabular-nums; white-space:nowrap;}
+table.list tr.done td{color:var(--ink-3)}
+.poke{display:flex; align-items:center; gap:8px; min-width:0;}
+.poke img{width:40px; height:40px; image-rendering:pixelated; flex:none; margin:-4px 0;}
+.poke .id{font-family:var(--f-ui); font-size:11px; color:var(--ink-3); width:3.2em; flex:none;}
+.poke .nm{font-weight:600; white-space:nowrap}
+tr.done .nm{font-weight:400}
+.tag{font:600 11px var(--f-ui); color:var(--c); border:1px solid color-mix(in srgb, var(--c) 45%, transparent);
+  background:color-mix(in srgb, var(--c) 10%, transparent); border-radius:99px; padding:1px 8px; white-space:nowrap;}
+.st{font-size:12px; white-space:nowrap}
+.st.new{color:var(--r-new); font-weight:600}
+.st.cur{color:var(--s3); font-weight:600}
+.bar{display:flex; align-items:center; gap:8px; justify-content:flex-end;}
+.bar i{display:block; height:6px; border-radius:3px; background:var(--s3); min-width:1px;}
+.bar .track{width:70px; flex:none; display:flex; justify-content:flex-start;}
+.shiny{color:var(--r-legendary)}
+.half{color:var(--ink-3); font-size:11px}
+.count{font-size:12.5px; color:var(--ink-3)}
+@media(max-width:640px){ .hide-sm,.bar .track{display:none} table.list{min-width:0} table.list td,table.list th{padding-inline:5px} .poke .id{display:none} }
+
+footer{color:var(--ink-3); font-size:12.5px; border-top:1px solid var(--line); padding-top:18px; display:flex; flex-direction:column; gap:6px;}
+footer code{font-family:var(--f-ui); color:var(--ink-2); font-size:11.5px;}
+</style>
+<style id="ptb-theme">
+:root{
+  color-scheme: light;
+  --ground:#f2f2f7; --surface:#ffffff; --surface-2:#f5f5f7;
+  --line:#e3e3e8; --line-soft:#ededf2;
+  --ink:#1d1d1f; --ink-2:#55555b; --ink-3:#86868b;
+  --s3:#007aff; --brand:#e8472f; --hot:#d93d25; --hot-soft:#fdece8;
+  --r-common:#76767b; --r-uncommon:#248a3d; --r-rare:#007aff; --r-legendary:#c35f00; --r-new:#248a3d;
+  --glow:rgba(232,71,47,.10);
+  --shadow:0 1px 2px rgba(0,0,0,.05), 0 10px 30px -18px rgba(0,0,0,.25);
+  --f-ui:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif;
+  --f-round:ui-rounded,"SF Pro Rounded","Nunito",-apple-system,system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --ground:#1c1c1e; --surface:#2a2a2d; --surface-2:#323235;
+    --line:#3a3a3e; --line-soft:#333336;
+    --ink:#f5f5f7; --ink-2:#b0b0b6; --ink-3:#8e8e93;
+    --s3:#0a84ff; --brand:#f05138; --hot:#ff6a55; --hot-soft:#3a2522;
+    --r-common:#a1a1a6; --r-uncommon:#30d158; --r-rare:#409cff; --r-legendary:#ff9f0a; --r-new:#30d158;
+    --glow:rgba(240,81,56,.16);
+    --shadow:0 1px 2px rgba(0,0,0,.35), 0 12px 32px -16px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --ground:#1c1c1e; --surface:#2a2a2d; --surface-2:#323235;
+  --line:#3a3a3e; --line-soft:#333336;
+  --ink:#f5f5f7; --ink-2:#b0b0b6; --ink-3:#8e8e93;
+  --s3:#0a84ff; --brand:#f05138; --hot:#ff6a55; --hot-soft:#3a2522;
+  --r-common:#a1a1a6; --r-uncommon:#30d158; --r-rare:#409cff; --r-legendary:#ff9f0a; --r-new:#30d158;
+  --glow:rgba(240,81,56,.16);
+  --shadow:0 1px 2px rgba(0,0,0,.35), 0 12px 32px -16px rgba(0,0,0,.6);
+}
+
+body{font-family:var(--f-ui); font-variant-numeric:tabular-nums;
+  background:radial-gradient(1100px 420px at 88% -140px, var(--glow), transparent 70%) no-repeat, var(--ground);}
+h1,h2,h3,.big,.spoiler .reveal,.tip .th{font-family:var(--f-round);}
+h1{font-weight:800; letter-spacing:-.015em;}
+h2{font-weight:700;}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace!important;}
+.eyebrow,.k,label.cap,table.list th,.ctl label,.tile .k{font-weight:600; letter-spacing:.06em;}
+header .eyebrow{display:inline-flex; align-items:center; gap:7px;}
+header .eyebrow::before{content:""; width:15px; height:15px; flex:none; background:var(--brand);
+  -webkit-mask:var(--ball) center/contain no-repeat; mask:var(--ball) center/contain no-repeat;}
+:root{--ball:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0Zm5.9 9H10.8a3 3 0 0 1-5.6 0H2.1a6 6 0 0 0 11.8 0Zm0-2a6 6 0 0 0-11.8 0h3.1a3 3 0 0 1 5.6 0ZM8 6.6a1.4 1.4 0 1 0 0 2.8 1.4 1.4 0 0 0 0-2.8Z'/%3E%3C/svg%3E");}
+a{text-decoration-thickness:1px; text-underline-offset:2px;}
+
+.panel{border-radius:16px; border-color:var(--line-soft);}
+.tiles{border-radius:12px;}
+.tile .v{font-size:19px;}
+.btn,.mode,.chip,.filters input[type=search],.filters select,.settings input{font-family:var(--f-ui)!important;}
+.btn{border-radius:8px;}
+a.btn{display:inline-block; text-decoration:none;}
+body.live .manual,body:not(.live) .live-only{display:none!important;}
+.btn.primary{background:var(--brand); border-color:var(--brand); color:#fff;}
+.btn.primary:hover{background:color-mix(in srgb, var(--brand) 88%, #000);}
+.btn:hover{border-color:var(--line); background:var(--line-soft);}
+.mode{border-radius:10px;}
+.mode.on{background:var(--s3); border-color:var(--s3); color:#fff; box-shadow:none;}
+.mode.on em{color:rgba(255,255,255,.82);}
+.chip{display:inline-flex; align-items:center; gap:6px;}
+.chip::before{content:""; width:7px; height:7px; border-radius:50%; background:var(--c,var(--ink-3)); opacity:.45;}
+.chip.on::before{opacity:1;}
+.tag{border:0; color:#fff; background:color-mix(in srgb, var(--c) 82%, #000); font:700 10px/1.7 var(--f-ui);
+  letter-spacing:.05em; text-transform:uppercase; padding:1px 8px;}
+.note{border-left-color:var(--brand);}
+input[type=range]{accent-color:var(--s3);}
+
+.poke img{transition:transform .15s ease;}
+table.list tbody tr:hover td{background:var(--surface-2);}
+table.list tbody tr:hover .poke img{transform:scale(1.25);}
+
+header{position:relative; padding-right:150px; overflow-x:clip;}
+.mascot{position:absolute; right:0; top:4px; width:128px; height:128px; border-radius:50%; pointer-events:none;
+  display:grid; place-items:center;
+  background:
+    radial-gradient(circle at 50% 50%, var(--surface) 0 13px, var(--line) 13px 17px, transparent 17px),
+    linear-gradient(to bottom, transparent calc(50% - 2px), var(--line) calc(50% - 2px) calc(50% + 2px), transparent calc(50% + 2px)),
+    linear-gradient(to bottom, color-mix(in srgb, var(--brand) 16%, var(--surface)) 50%, var(--surface) 50%);
+  box-shadow:inset 0 0 0 4px var(--line), var(--shadow);}
+.mascot img{width:96px; height:96px; object-fit:contain; image-rendering:pixelated; animation:bob 2.6s ease-in-out infinite;
+  filter:drop-shadow(0 4px 3px rgba(0,0,0,.25)); margin-top:-18px;}
+.mascot.egg img{width:96px; height:96px; margin-top:-8px; scale:2.3; transform-origin:50% 64%; animation:wobble 3.2s ease-in-out infinite;}
+@keyframes bob{0%,100%{translate:0 0} 50%{translate:0 -5px}}
+@keyframes wobble{0%,70%,100%{rotate:0deg} 76%{rotate:-9deg} 82%{rotate:8deg} 88%{rotate:-5deg} 94%{rotate:3deg}}
+@media (prefers-reduced-motion: reduce){ .mascot img{animation:none} .poke img{transition:none} }
+@media (max-width:640px){
+  header{padding-right:0;}
+  .mascot{width:76px; height:76px; top:-6px; box-shadow:inset 0 0 0 3px var(--line);}
+  .mascot img{width:60px; height:60px; margin-top:-10px;}
+  .mascot.egg img{width:60px; height:60px; margin-top:-4px;}
+  header h1,header .eyebrow{padding-right:84px;}
+}
+</style>
+</head>
+<body>
+<script src="nav.js"></script>
+<div class="wrap">
+
+<header>
+  <div class="mascot egg" id="mascot" aria-hidden="true"><img alt="" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/egg.png"></div>
+  <span class="eyebrow" id="eyebrow">TokenDex · d'après ta sauvegarde</span>
+  <h1 data-en="Your next Pokémon">Tes prochains Pokémon</h1>
+  <p class="lede" data-en="The odds of each line in the next egg and the ones after, computed with the app's rules on your own collection: weight = catch rate, halved once the line has graduated.">Les chances de chaque ligne au prochain œuf et sur les œufs suivants, calculées avec les règles de l'app sur ta propre collection : poids = taux de capture, divisé par deux une fois la ligne graduée.</p>
+</header>
+
+<section class="panel" aria-label="Ta sauvegarde" data-en-aria-label="Your save">
+  <p class="empty" id="empty" hidden data-en="<b>No save loaded.</b> Load it from the <a href='index.html'>home page</a>: every page then uses it."><b>Aucune sauvegarde chargée.</b> Charge-la depuis l'<a href="index.html">accueil</a> : elle sert ensuite à toutes les pages.</p>
+  <div class="tiles" id="saveTiles"></div>
+  <div class="save-row manual">
+    <a class="btn" id="loadBtn" href="index.html">Charger ma sauvegarde</a>
+    <span class="hint" data-en="The save is loaded from the home page and feeds every page.">La sauvegarde se charge depuis l'accueil et sert à toutes les pages.</span>
+  </div>
+  <div class="settings manual" id="settings">
+    <label><span data-en="Growth">Croissance</span> <input type="number" id="setG" min="10" max="200" step="5"> %</label>
+    <label><span data-en="Shop">Boutique</span> <input type="number" id="setS" min="10" max="200" step="5"> %</label>
+    <span class="hint" data-en="Your app settings: they are not in the save, they drive prices and growth.">Tes réglages de l'app : ils ne sont pas dans la sauvegarde, ils servent aux prix et à la croissance.</span>
+  </div>
+  <div class="note spoiler" id="pending" hidden>
+    <span data-en="The current egg is <b>already drawn</b>: the species is written in your save.">L'œuf en cours est <b>déjà tiré</b> : l'espèce est écrite dans ta sauvegarde.</span>
+    <button type="button" class="btn" id="revealBtn" data-en="Reveal">Révéler</button>
+    <span class="reveal" id="pendingName" hidden></span>
+  </div>
+</section>
+
+<div id="app" style="display:contents">
+<section class="panel" aria-label="Type d'œuf" data-en-aria-label="Egg type">
+  <div class="modes" role="radiogroup" aria-label="Type d'œuf" data-en-aria-label="Egg type" id="modes"></div>
+</section>
+
+<section class="panel" aria-label="Prochain œuf" data-en-aria-label="Next egg">
+  <div class="panel-head"><h2 data-en="In the next egg">Au prochain œuf</h2><p id="nextHint"></p></div>
+  <div class="tiles" id="nextTiles"></div>
+</section>
+
+<section class="panel" aria-label="Horizon">
+  <div class="panel-head"><h2 data-en="Over the next eggs">Sur les prochains œufs</h2><p data-en="Simulation of 3,000 runs of eggs of the chosen type: every Pokémon graduates, so a new line loses half its weight as soon as it hatches.">Simulation de 3 000 suites d'œufs du type choisi : chaque Pokémon est gradué, donc une ligne nouvelle perd la moitié de son poids dès qu'elle sort.</p></div>
+  <div class="ctl">
+    <div class="ctl-top"><label class="cap" for="n" data-en="Number of eggs">Nombre d'œufs</label><output id="nOut" for="n">20</output></div>
+    <input type="range" id="n" min="1" max="100" step="1" value="20">
+  </div>
+  <div class="tiles" id="horizonTiles"></div>
+</section>
+
+<section class="panel" aria-label="Listing" data-en-aria-label="All lines">
+  <div class="panel-head"><h2 data-en="All lines">Toutes les lignes</h2><p id="listHint"></p></div>
+  <div class="filters">
+    <input type="search" id="q" placeholder="Chercher un Pokémon ou un n°" aria-label="Chercher" data-en-placeholder="Search for a Pokémon or a No." data-en-aria-label="Search">
+    <span id="rarChips"></span>
+    <label class="check"><input type="checkbox" id="onlyNew"> <span data-en="New only">Nouvelles seulement</span></label>
+    <select id="sort" aria-label="Trier" data-en-aria-label="Sort">
+      <option value="p" data-en="Most likely">Plus probables</option>
+      <option value="id" data-en="Pokédex No.">N° Pokédex</option>
+      <option value="name" data-en="Name">Nom</option>
+    </select>
+  </div>
+  <div class="scroller">
+    <table class="list">
+      <thead><tr>
+        <th>Pokémon</th><th class="hide-sm" data-en="Rarity">Rareté</th><th class="hide-sm" data-en="Status">Statut</th><th class="num hide-sm" data-en="Weight">Poids</th>
+        <th class="num" data-en="Next egg">Prochain œuf</th><th class="num hide-sm" data-en="1 in">1 sur</th>
+        <th class="num" id="thN">En 20 œufs</th><th class="num hide-sm">Shiny</th>
+      </tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+  <span class="count" id="count"></span>
+</section>
+</div>
+
+<footer>
+  <p data-en="Rules taken from <code>CompanionStore.chooseBase</code>: 328 base lines up to #649, Ditto excluded, weight = <code>capture_rate</code>, halved (rounded down, minimum 1) once the line has graduated. Uncommon+ and Rare+ Eggs only keep <code>capture_rate ≤ 120</code> and <code>≤ 45</code>, legendaries included. Shiny is drawn separately: 1/48 with the Shiny Charm, 1/64 without.">Règles reprises de <code>CompanionStore.chooseBase</code> : 328 lignes de base jusqu'au #649, Métamorph exclu, poids = <code>capture_rate</code>, divisé par deux (arrondi bas, minimum 1) quand la ligne a déjà été graduée. Les œufs Peu commun+ et Rare+ ne gardent que les <code>capture_rate ≤ 120</code> et <code>≤ 45</code>, ce qui inclut les légendaires. Shiny tiré à part : 1/48 avec le Charme Chroma, 1/64 sans.</p>
+  <p data-en="Not modeled: Ditto's disguise (1/128 on commons that evolve) and Unown letters. Names and catch rates: PokéAPI. Sprites: PokeAPI/sprites, Black &amp; White.">Non modélisés : le déguisement de Métamorph (1/128 sur les communs à évolution) et les lettres de Zarbi. Noms et taux de capture : PokéAPI. Sprites : PokeAPI/sprites, Noir &amp; Blanc.</p>
+</footer>
+</div>
+
+<script src="save.js"></script>
+<script src="dex-data.js"></script>
+<script id="data" type="application/json">{"lines":[[1,45,0],[4,45,0],[7,45,0],[10,255,0],[13,255,0],[16,255,0],[19,255,0],[21,255,0],[23,255,0],[27,255,0],[29,235,0],[32,235,0],[37,190,0],[41,255,0],[43,255,0],[46,190,0],[48,190,0],[50,255,0],[52,255,0],[54,190,0],[56,190,0],[58,190,0],[60,255,0],[63,200,0],[66,180,0],[69,255,0],[72,190,0],[74,255,0],[77,190,0],[79,190,0],[81,190,0],[83,45,0],[84,190,0],[86,190,0],[88,190,0],[90,190,0],[92,190,0],[95,45,0],[96,190,0],[98,225,0],[100,190,0],[102,90,0],[104,190,0],[108,45,0],[109,190,0],[111,120,0],[114,45,0],[115,45,0],[116,225,0],[118,225,0],[120,225,0],[123,45,0],[127,45,0],[128,45,0],[129,255,0],[131,45,0],[133,45,0],[137,45,0],[138,45,0],[140,45,0],[142,45,0],[144,3,1],[145,3,1],[146,3,1],[147,45,0],[150,3,1],[151,45,1],[152,45,0],[155,45,0],[158,45,0],[161,255,0],[163,255,0],[165,255,0],[167,255,0],[170,190,0],[172,190,0],[173,150,0],[174,170,0],[175,190,0],[177,190,0],[179,235,0],[187,255,0],[190,45,0],[191,235,0],[193,75,0],[194,255,0],[198,30,0],[200,45,0],[201,225,0],[203,60,0],[204,190,0],[206,190,0],[207,60,0],[209,190,0],[211,45,0],[213,190,0],[214,45,0],[215,60,0],[216,120,0],[218,190,0],[220,225,0],[222,60,0],[223,190,0],[225,45,0],[227,25,0],[228,120,0],[231,120,0],[234,45,0],[235,45,0],[236,75,0],[238,45,0],[239,45,0],[240,45,0],[241,45,0],[243,3,1],[244,3,1],[245,3,1],[246,45,0],[249,3,1],[250,3,1],[251,45,1],[252,45,0],[255,45,0],[258,45,0],[261,255,0],[263,255,0],[265,255,0],[270,255,0],[273,255,0],[276,200,0],[278,190,0],[280,235,0],[283,200,0],[285,255,0],[287,255,0],[290,255,0],[293,190,0],[296,180,0],[298,150,0],[299,255,0],[300,255,0],[302,45,0],[303,45,0],[304,180,0],[307,180,0],[309,120,0],[311,200,0],[312,200,0],[313,150,0],[314,150,0],[316,225,0],[318,225,0],[320,125,0],[322,255,0],[324,90,0],[325,255,0],[327,255,0],[328,255,0],[331,190,0],[333,255,0],[335,90,0],[336,90,0],[337,45,0],[338,45,0],[339,190,0],[341,205,0],[343,255,0],[345,45,0],[347,45,0],[349,255,0],[351,45,0],[352,200,0],[353,225,0],[355,190,0],[357,200,0],[359,30,0],[360,125,0],[361,190,0],[363,255,0],[366,255,0],[369,25,0],[370,225,0],[371,45,0],[374,3,0],[377,3,1],[378,3,1],[379,3,1],[380,3,1],[381,3,1],[382,3,1],[383,3,1],[384,45,1],[385,3,1],[386,3,1],[387,45,0],[390,45,0],[393,45,0],[396,255,0],[399,255,0],[401,255,0],[403,235,0],[406,255,0],[408,45,0],[410,45,0],[412,120,0],[415,120,0],[417,200,0],[418,190,0],[420,190,0],[422,190,0],[425,125,0],[427,190,0],[431,190,0],[433,120,0],[434,225,0],[436,255,0],[438,255,0],[439,145,0],[440,130,0],[441,30,0],[442,100,0],[443,45,0],[446,50,0],[447,75,0],[449,140,0],[451,120,0],[453,140,0],[455,200,0],[456,190,0],[458,25,0],[459,120,0],[479,45,0],[480,3,1],[481,3,1],[482,3,1],[483,3,1],[484,3,1],[485,3,1],[486,3,1],[487,3,1],[488,3,1],[489,30,1],[490,3,1],[491,3,1],[492,45,1],[493,3,1],[494,3,1],[495,45,0],[498,45,0],[501,45,0],[504,255,0],[506,255,0],[509,255,0],[511,190,0],[513,190,0],[515,190,0],[517,190,0],[519,255,0],[522,190,0],[524,255,0],[527,190,0],[529,120,0],[531,255,0],[532,180,0],[535,255,0],[538,45,0],[539,45,0],[540,255,0],[543,255,0],[546,190,0],[548,190,0],[550,25,0],[551,180,0],[554,120,0],[556,255,0],[557,190,0],[559,180,0],[561,45,0],[562,190,0],[564,45,0],[566,45,0],[568,190,0],[570,75,0],[572,255,0],[574,200,0],[577,200,0],[580,190,0],[582,255,0],[585,190,0],[587,200,0],[588,200,0],[590,190,0],[592,190,0],[594,75,0],[595,190,0],[597,255,0],[599,130,0],[602,190,0],[605,255,0],[607,190,0],[610,75,0],[613,120,0],[615,25,0],[616,200,0],[618,75,0],[619,180,0],[621,45,0],[622,190,0],[624,120,0],[626,45,0],[627,190,0],[629,190,0],[631,90,0],[632,90,0],[633,45,0],[636,45,0],[638,3,1],[639,3,1],[640,3,1],[641,3,1],[642,3,1],[643,3,1],[644,3,1],[645,3,1],[646,3,1],[647,3,1],[648,3,1],[649,3,1]]}</script>
+<script>
+translatePage();
+const DATA = JSON.parse(document.getElementById('data').textContent);
+const LINES = DATA.lines.map(([id, cr, leg]) => ({
+  id, name: NAMES[id - 1], cr, leg: !!leg,
+  rarity: leg ? 'legendary' : cr <= 45 ? 'rare' : cr <= 120 ? 'uncommon' : 'common'
+}));
+const BY_ID = new Map(LINES.map(l => [l.id, l]));
+const RARITY = {
+  common: {label: tr('Commun', 'Common'), c: 'var(--r-common)', grad: 750e6},
+  uncommon: {label: tr('Peu commun', 'Uncommon'), c: 'var(--r-uncommon)', grad: 1875e6},
+  rare: {label: 'Rare', c: 'var(--r-rare)', grad: 3000e6},
+  legendary: {label: tr('Légendaire', 'Legendary'), c: 'var(--r-legendary)', grad: 6000e6}
+};
+const EGGS = {
+  none: {label: tr('Œuf normal', 'Normal Egg'), ceil: 255, price: 1e9},
+  uncommon: {label: tr('Œuf Peu commun+', 'Uncommon+ Egg'), ceil: 120, price: 2.5e9},
+  rare: {label: tr('Œuf Rare+', 'Rare+ Egg'), ceil: 45, price: 4e9}
+};
+const EGG_BASE = 5e6;
+
+
+let settings = {g: 100, s: 100};
+try { settings = {...settings, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}')}; } catch (e) {}
+let save = null;
+const ui = {egg: 'none', n: 20, q: '', onlyNew: false, sort: 'p',
+  rar: new Set(Object.keys(RARITY))};
+
+const $ = id => document.getElementById(id);
+function pct(p) {
+  if (p <= 0) return '–';
+  const v = p * 100;
+  const d = v >= 10 ? 1 : v >= 1 ? 2 : v >= 0.1 ? 3 : 4;
+  return v.toLocaleString(LOCALE, {minimumFractionDigits: d, maximumFractionDigits: d}) + tr(' %', '%');
+}
+const oneIn = p => p > 0 ? Math.round(1 / p).toLocaleString(LOCALE) : '–';
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+const tile = (k, v, s = '', cls = '') => `<div class="tile ${cls}"><span class="k">${k}</span><span class="v">${v}</span>${s ? `<span class="s">${s}</span>` : ''}</div>`;
+const weight = (l, collected) => collected.has(l.id) ? Math.max(1, Math.floor(l.cr / 2)) : Math.max(1, l.cr);
+const shinyRate = () => save.charm ? 1 / 48 : 1 / 64;
+
+function mulberry32(a) {
+  return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+
+function nextEgg() {
+  // The next egg is only drawn once the active Pokémon graduates, so its line already counts as graduated.
+  const collected = new Set(save.collected);
+  if (save.active) collected.add(save.active);
+  const pool = LINES.filter(l => l.cr <= EGGS[ui.egg].ceil);
+  const w = pool.map(l => weight(l, collected));
+  const total = w.reduce((a, b) => a + b, 0);
+  const p = new Map(pool.map((l, i) => [l.id, w[i] / total]));
+  return {pool, p, collected};
+}
+
+// Odds that none of n eggs triggers an event, e[i] being its odds when line i hatches. Each run follows a path
+// with no event so far and keeps the odds of that path, instead of counting hits: exact for one egg, and a 1 %
+// event no longer swings by a fifth between runs of the same slider value.
+function noEventOdds(pool, baseW, half, collected, e, n, rnd, R) {
+  let sum = 0;
+  for (let r = 0; r < R; r++) {
+    const w = baseW.slice(), got = pool.map(l => collected.has(l.id));
+    let total = w.reduce((a, b) => a + b, 0), hit = w.reduce((a, x, i) => a + x * e[i], 0), q = 1;
+    for (let k = 0; k < n && q > 0; k++) {
+      q *= 1 - hit / total;
+      let x = rnd() * (total - hit), i = 0;
+      while (x >= w[i] * (1 - e[i]) && i < w.length - 1) { x -= w[i] * (1 - e[i]); i++; }
+      if (!got[i]) { got[i] = true; const d = w[i] - half[i]; total -= d; hit -= d * e[i]; w[i] = half[i]; }
+    }
+    sum += q;
+  }
+  return sum / R;
+}
+
+function horizon(pool, collected, n) {
+  const R = 3000, rnd = mulberry32(1234 + n), s = shinyRate();
+  const baseW = pool.map(l => weight(l, collected));
+  const half = pool.map(l => Math.max(1, Math.floor(l.cr / 2)));
+  let sumNew = 0, sumCost = 0;
+  const g = save.growth;
+  for (let r = 0; r < R; r++) {
+    const w = baseW.slice(), got = pool.map(l => collected.has(l.id));
+    let total = w.reduce((a, b) => a + b, 0);
+    for (let k = 0; k < n; k++) {
+      let x = rnd() * total, i = 0;
+      while (x >= w[i] && i < w.length - 1) { x -= w[i]; i++; }
+      const l = pool[i];
+      sumCost += (RARITY[l.rarity].grad / (got[i] ? 2 : 1) + EGG_BASE) * g;
+      if (!got[i]) { got[i] = true; sumNew++; total -= w[i] - half[i]; w[i] = half[i]; }
+    }
+  }
+  const noLeg = noEventOdds(pool, baseW, half, collected, pool.map(l => l.leg ? 1 : 0), n, mulberry32(4321 + n), 1000);
+  const noShinyLeg = noEventOdds(pool, baseW, half, collected, pool.map(l => l.leg ? s : 0), n, mulberry32(8765 + n), 1000);
+  return {newLines: sumNew / R, anyLeg: 1 - noLeg, anyShinyLeg: 1 - noShinyLeg,
+    anyShiny: 1 - Math.pow(1 - s, n), cost: sumCost / R};
+}
+
+function renderSave() {
+  const collected = new Set(save.collected);
+  const graduated = LINES.filter(l => collected.has(l.id)).length;
+  const active = save.active && BY_ID.get(save.active);
+  const rarePrice = EGGS.rare.price * save.shop;
+  $('eyebrow').textContent = tr(`TokenDex · d'après ta sauvegarde du ${save.date}`, `TokenDex · from your save of ${save.date}`);
+  $('saveTiles').innerHTML =
+    tile(tr('Lignes graduées', 'Graduated lines'), `${graduated} / ${LINES.length}`, `${LINES.filter(l => l.leg && collected.has(l.id)).length} / 48 ${tr('légendaires', 'legendaries')}`) +
+    tile(tr('En cours', 'Growing'), active ? esc(active.name) : tr('Œuf', 'Egg'), active ? RARITY[active.rarity].label.toLowerCase() : '') +
+    tile('Shiny', save.charm ? '1 / 48' : '1 / 64', save.charm ? tr('Charme Chroma', 'Shiny Charm') : tr('sans charme', 'no charm')) +
+    tile(tr('Solde boutique', 'Shop balance'), tok(save.wallet), save.wallet >= rarePrice ? tr('Rare+ achetable', 'Rare+ affordable') : `${tr('Rare+ à', 'Rare+ at')} ${tok(rarePrice)}`);
+  const pend = save.pending && BY_ID.get(save.pending);
+  $('pending').hidden = !pend;
+  $('pendingName').hidden = true;
+  $('revealBtn').hidden = false;
+  if (pend) $('pendingName').textContent = `#${pend.id} ${pend.name} · ${RARITY[pend.rarity].label.toLowerCase()}`;
+}
+
+function renderModes() {
+  $('modes').innerHTML = Object.entries(EGGS).map(([k, e]) =>
+    `<button type="button" class="mode${k === ui.egg ? ' on' : ''}" role="radio" aria-checked="${k === ui.egg}" data-egg="${k}">${e.label}<em>${k === 'none' ? tr('tirage libre', 'open draw') : tok(e.price * save.shop)}${k === save.eggTier ? tr(' · en cours', ' · current') : ''}</em></button>`).join('');
+}
+
+function render() {
+  const {pool, p, collected} = nextEgg();
+  const s = shinyRate();
+  const by = r => pool.filter(l => l.rarity === r).reduce((a, l) => a + p.get(l.id), 0);
+  const pNew = pool.filter(l => !collected.has(l.id)).reduce((a, l) => a + p.get(l.id), 0);
+  const act = save.active && BY_ID.get(save.active), odds = save.charm ? 48 : 64;
+  $('nextHint').textContent = tr(`${pool.length} lignes dans le tirage${act ? `, ${act.name} compté comme gradué puisque l'œuf ne vient qu'après` : ''}. Le shiny est tiré à part : 1 chance sur ${odds}, quelle que soit la rareté.`,
+    `${pool.length} lines in the draw${act ? `, ${act.name} counted as graduated since the egg only comes after` : ''}. Shiny is drawn separately: 1 in ${odds}, whatever the rarity.`);
+  $('nextTiles').innerHTML =
+    ['common', 'uncommon', 'rare'].filter(r => pool.some(l => l.rarity === r))
+      .map(r => tile(RARITY[r].label, pct(by(r)), `shiny ${pct(by(r) * s)}`)).join('') +
+    tile(RARITY.legendary.label, pct(by('legendary')), `shiny 1 ${tr('sur', 'in')} ${oneIn(by('legendary') * s)}`, 'leg') +
+    tile(tr('Ligne nouvelle', 'New line'), pct(pNew), `${tr('doublon', 'duplicate')} ${pct(1 - pNew)}`);
+
+  const h = horizon(pool, collected, ui.n);
+  $('nOut').textContent = ui.n;
+  $('thN').textContent = tr(`En ${ui.n} œuf${ui.n > 1 ? 's' : ''}`, `In ${ui.n} egg${ui.n > 1 ? 's' : ''}`);
+  $('horizonTiles').innerHTML =
+    tile(tr('Nouvelles lignes', 'New lines'), h.newLines.toLocaleString(LOCALE, {maximumFractionDigits: 1}), tr('en moyenne', 'on average')) +
+    tile(tr('≥ 1 légendaire', '≥ 1 legendary'), pct(h.anyLeg), '', 'leg') +
+    tile('≥ 1 shiny', pct(h.anyShiny)) +
+    tile(tr('≥ 1 légendaire shiny', '≥ 1 shiny legendary'), pct(h.anyShinyLeg)) +
+    tile(tr('Croissance', 'Growth'), tok(h.cost), tr(`à ${Math.round(save.growth * 100)} % de croissance`, `at ${Math.round(save.growth * 100)}% growth`));
+
+  const q = ui.q.trim().toLowerCase();
+  let rows = pool.filter(l => ui.rar.has(l.rarity) && (!ui.onlyNew || !collected.has(l.id)) &&
+    (!q || l.name.toLowerCase().includes(q) || String(l.id) === q.replace('#', '')));
+  rows.sort(ui.sort === 'id' ? (a, b) => a.id - b.id : ui.sort === 'name' ? (a, b) => a.name.localeCompare(b.name, LANG)
+    : (a, b) => p.get(b.id) - p.get(a.id) || a.id - b.id);
+  const maxP = Math.max(...pool.map(l => p.get(l.id)));
+  const shinySet = new Set(save.shiny);
+  $('rows').innerHTML = rows.map(l => {
+    const pr = p.get(l.id), done = collected.has(l.id), cur = save.active === l.id;
+    const st = cur ? `<span class="st cur">${tr('En cours', 'Growing')}</span>` : done ? `<span class="st">${tr('Graduée', 'Graduated')}</span>` : `<span class="st new">${tr('Nouvelle', 'New')}</span>`;
+    return `<tr class="${done ? 'done' : ''}">
+      <td><div class="poke"><img loading="lazy" alt="" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/${l.id}.png"><span class="id">#${l.id}</span><span class="nm">${esc(l.name)}</span>${shinySet.has(l.id) ? ` <span class="shiny" title="${tr('Shiny gradué', 'Graduated shiny')}">✦</span>` : ''}</div></td>
+      <td class="hide-sm"><span class="tag" style="--c:${RARITY[l.rarity].c}">${RARITY[l.rarity].label}</span></td>
+      <td class="hide-sm">${st}</td>
+      <td class="num hide-sm">${weight(l, collected)}${collected.has(l.id) ? ` <span class="half" title="${tr(`Taux de capture ${l.cr}, divisé par deux`, `Catch rate ${l.cr}, halved`)}">/ ${l.cr}</span>` : ''}</td>
+      <td class="num"><div class="bar"><span>${pct(pr)}</span><span class="track"><i style="width:${Math.max(1, pr / maxP * 100)}%"></i></span></div></td>
+      <td class="num hide-sm">${oneIn(pr)}</td>
+      <td class="num">${pct(1 - Math.pow(1 - pr, ui.n))}</td>
+      <td class="num hide-sm">1 / ${oneIn(pr * s)}</td></tr>`;
+  }).join('');
+  $('count').textContent = tr(`${rows.length} ligne${rows.length > 1 ? 's' : ''} affichée${rows.length > 1 ? 's' : ''} sur ${pool.length}`, `${rows.length} line${rows.length > 1 ? 's' : ''} shown of ${pool.length}`);
+  const totalW = pool.reduce((a, l) => a + weight(l, collected), 0);
+  $('listHint').textContent = tr(`Chance = poids ÷ ${totalW.toLocaleString(LOCALE)} (poids total du tirage). Les lignes graduées restent dans le tirage avec un poids divisé par deux. « En ${ui.n} œuf${ui.n > 1 ? 's' : ''} » = chance de tomber au moins une fois dessus, à poids constants.`,
+    `Odds = weight ÷ ${totalW.toLocaleString(LOCALE)} (total weight of the draw). Graduated lines stay in the draw with half their weight. “In ${ui.n} egg${ui.n > 1 ? 's' : ''}” = odds of getting it at least once, at constant weights.`);
+}
+
+$('rarChips').innerHTML = Object.entries(RARITY).map(([k, r]) =>
+  `<button type="button" class="chip on" style="--c:${r.c}" data-rar="${k}" aria-pressed="true">${r.label}</button>`).join(' ');
+$('rarChips').addEventListener('click', e => {
+  const b = e.target.closest('[data-rar]'); if (!b) return;
+  const k = b.dataset.rar;
+  ui.rar.has(k) ? ui.rar.delete(k) : ui.rar.add(k);
+  b.classList.toggle('on', ui.rar.has(k)); b.setAttribute('aria-pressed', ui.rar.has(k));
+  render();
+});
+$('modes').addEventListener('click', e => {
+  const b = e.target.closest('[data-egg]'); if (!b) return;
+  ui.egg = b.dataset.egg; renderModes(); render();
+});
+let raf = 0;
+$('n').addEventListener('input', e => { ui.n = +e.target.value; $('nOut').textContent = ui.n;
+  cancelAnimationFrame(raf); raf = requestAnimationFrame(render); });
+$('q').addEventListener('input', e => { ui.q = e.target.value; render(); });
+$('onlyNew').addEventListener('change', e => { ui.onlyNew = e.target.checked; render(); });
+$('sort').addEventListener('change', e => { ui.sort = e.target.value; render(); });
+$('revealBtn').addEventListener('click', () => { $('pendingName').hidden = false; $('revealBtn').hidden = true; });
+function saveFromState(v) {
+  const st = v.st, finals = st.collectedFinals, finalSet = new Set(finals);
+  return {
+    date: fmtSaveDate(v.at),
+    collected: [...new Set(finals.map(k => +k.split(':')[0]))],
+    shiny: st.dex.filter(d => d.isShiny && !d.releasedAt && finalSet.has(`${d.baseID}:${d.finalID}`)).map(d => d.baseID),
+    active: st.active ? st.active.baseID : null,
+    pending: st.pendingHatchID, eggTier: st.eggTier,
+    charm: (st.inventory.shinyCharm || 0) > 0,
+    wallet: Math.max(0, st.usedSinceInstall - st.spentTokens),
+    growth: settings.g / 100, shop: settings.s / 100
+  };
+}
+function show(v) {
+  setMascot(v);
+  save = v ? saveFromState(v) : null;
+  $('empty').hidden = !!save; $('app').hidden = !save; $('saveTiles').hidden = !save;
+  $('pending').hidden = true;
+  $('loadBtn').textContent = save ? tr('Changer de sauvegarde', 'Change save') : tr('Charger ma sauvegarde', 'Load my save');
+  if (!save) { $('eyebrow').textContent = tr('TokenDex · aucune sauvegarde chargée', 'TokenDex · no save loaded'); return; }
+  if (save.eggTier && EGGS[save.eggTier]) ui.egg = save.eggTier;
+  renderSave(); renderModes(); render();
+}
+$('setG').value = settings.g; $('setS').value = settings.s;
+const onSettings = () => {
+  const clamp = v => Math.min(200, Math.max(10, Math.round(+v || 100)));
+  settings = {g: clamp($('setG').value), s: clamp($('setS').value)};
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) {}
+  if (save) { save = {...save, growth: settings.g / 100, shop: settings.s / 100}; renderSave(); renderModes(); render(); }
+};
+$('setG').addEventListener('change', onSettings); $('setS').addEventListener('change', onSettings);
+watchSave(show);
+show(readStoredSave());
+wireServedSave(show);
+appSettings().then(x => {
+  if (!x.live) return;
+  $('setG').value = x.g; $('setS').value = x.s; onSettings();
+});
+</script>
+</body>
+</html>
