@@ -171,7 +171,7 @@ function Luck({hs}: {hs: Hatch[]}) {
         <h2>{tr('Critère par critère', 'Criterion by criterion')}</h2>
         <p>{tr('Le pourcentage dit quelle part des dresseurs, avec exactement les mêmes chances que toi à chaque éclosion, aurait fait moins bien. 50 %, c\'est pile la moyenne.', 'The percentage tells what share of trainers, with exactly the same odds as you at every hatch, would have done worse. 50% is dead average.')}</p>
       </div>
-      <div class="metrics">{m.map(x => <MetricRow x={x} />)}</div>
+      <div class="metrics">{m.map(x => <MetricRow key={x.name} x={x} />)}</div>
     </section>
     <section class="panel" aria-label={tr('Tirages improbables', 'Unlikely draws')}>
       <div class="panel-head">
@@ -180,7 +180,7 @@ function Luck({hs}: {hs: Hatch[]}) {
       </div>
       <div class="tops">
         {tops.length ? tops.map(h => (
-          <div class="top">
+          <div key={h.n} class="top">
             <img alt="" loading="lazy" src={hatchSprite(h)} />
             <div style="min-width:0">
               <div class="t1">{hatchName(h)}{h.e.shiny && <> <span class="shiny">✦</span></>}</div>
@@ -205,7 +205,7 @@ function Luck({hs}: {hs: Hatch[]}) {
             {[...hs].reverse().map(h => {
               const l = BY_ID.get(h.e.base), nm = hatchName(h);
               return (
-                <tr>
+                <tr key={h.n}>
                   <td class="num">{h.n}</td>
                   <td><div class="poke">
                     <img loading="lazy" alt="" src={hatchSprite(h)} /><span class="nm">{nm}</span>
@@ -235,7 +235,7 @@ function Luck({hs}: {hs: Hatch[]}) {
         </div>
         <div class="favs">
           {hearts.map(l => (
-            <div class={had.has(l.id) ? 'fv got' : 'fv'}>
+            <div key={l.id} class={had.has(l.id) ? 'fv got' : 'fv'}>
               <span class="r">{l.rank}</span><img loading="lazy" alt="" src={bwSprite(l.id)} />
               <div style="min-width:0">
                 <div class="t1">{l.name}{had.has(l.id) && <> <span class="fav">♥</span></>}</div>
@@ -286,11 +286,11 @@ function App() {
       {hs && <Luck hs={hs} />}
       <footer>
         {tr(<>
-          <p>Règles reprises de l'app : 328 lignes de base jusqu'au #649, poids = <code>capture_rate</code>, divisé par deux quand la ligne a déjà été graduée. Métamorph : 1 chance sur 128 sur un commun qui évolue. Shiny : 1/64, 1/48 avec le Charme Chroma. Le percentile est calculé exactement (loi de Poisson-binomiale), avec demi-poids sur l'égalité.</p>
+          <p>Règles reprises de l'app : 328 lignes de base jusqu'au #649, poids = <code>capture_rate</code>, divisé par deux quand la ligne a déjà été graduée. Métamorph : 1 chance sur 128 sur un commun qui évolue. Shiny : 1/64, 1/48 avec le Charme Chroma. Le percentile est calculé exactement (loi de Poisson-binomiale), avec demi-poids sur l'égalité. Seule approximation : les chances par ligne, doublon et coup de cœur négligent le déguisement de Métamorph, qui retire au plus 1/128 (0,8 %) à un commun qui évolue.</p>
           <p>Les éclosions qui suivent un Pokémon relâché viennent d'un œuf acheté dont la sauvegarde ne garde pas le type : elles ne comptent que pour le shiny. L'indice de chance est la moyenne des sept percentiles, c'est un résumé ludique, pas une mesure statistique. Sprites : PokeAPI/sprites.</p>
           <p>Coups de cœur : chaque lignée additionne les voix de ses Pokémon, sur une seule branche pour Évoli et les autres évolutions multiples, au <a href="https://github.com/arturomoncadatorres/favorite-pokemon">sondage Reddit de 2019</a> (52 000 votants, un favori chacun, données sous licence MIT). Les 75 lignées les mieux placées sont les coups de cœur, marquées ♥ dans l'historique.</p>
         </>, <>
-          <p>Rules taken from the app: 328 base lines up to #649, weight = <code>capture_rate</code>, halved once the line has graduated. Ditto: 1 in 128 on a common that evolves. Shiny: 1/64, 1/48 with the Shiny Charm. The percentile is computed exactly (Poisson binomial distribution), with half weight on ties.</p>
+          <p>Rules taken from the app: 328 base lines up to #649, weight = <code>capture_rate</code>, halved once the line has graduated. Ditto: 1 in 128 on a common that evolves. Shiny: 1/64, 1/48 with the Shiny Charm. The percentile is computed exactly (Poisson binomial distribution), with half weight on ties. Only approximation: line, duplicate and favorite odds ignore Ditto's disguise, which takes at most 1/128 (0.8%) off a common that evolves.</p>
           <p>Hatches that follow a released Pokémon come from a bought egg whose type the save does not keep: they only count for shiny. The luck score is the average of the seven percentiles, a playful summary, not a statistical measure. Sprites: PokeAPI/sprites.</p>
           <p>Favorites: each line adds up the votes of its Pokémon, along a single branch for Eevee and other split evolutions, in the <a href="https://github.com/arturomoncadatorres/favorite-pokemon">2019 Reddit survey</a> (52,000 voters, one favorite each, data under the MIT license). The 75 best placed lines are the favorites, marked ♥ in the history.</p>
         </>)}

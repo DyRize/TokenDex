@@ -103,7 +103,7 @@ function Wtp({dex, ids, onSeen, onClose}: {dex: Dex; ids: number[]; onSeen: (ids
           <span class="wtp-no">{no}</span>
           <span class="q">{tr('Quel est ce Pokémon\u00a0?', 'Who\'s that Pokémon?')}</span>
           <span class="nm">{g ? tr(`C'est ${g.name}\u00a0!`, `It's ${g.name}!`) : ''}</span>
-          <span class="wtp-tags">{tags.map(([text, r]) => <span style={r ? `--c:var(--r-${r})` : undefined}>{text}</span>)}</span>
+          <span class="wtp-tags">{tags.map(([text, r]) => <span key={text} style={r ? `--c:var(--r-${r})` : undefined}>{text}</span>)}</span>
           <span class="wtp-meta">{meta}</span>
         </div>
         <div class="wtp-actions">
@@ -147,12 +147,12 @@ function Grid({dex, unseen, onOpen}: {dex: Dex; unseen: Set<number>; onOpen: (id
     const ids: number[] = []; for (let i = a; i <= b; i++) if (keep(i)) ids.push(i);
     let n = 0; for (let i = a; i <= b; i++) if (dex.got.has(i)) n++;
     return ids.length > 0 && (
-      <section class="panel gen" aria-label={name}>
+      <section key={name} class="panel gen" aria-label={name}>
         <div class="gen-head">
           <h2>{name}</h2>
           <span class="count">{`${n} / ${b - a + 1}`}</span><span class="prog"><i style={`width:${(n / (b - a + 1) * 100).toFixed(1)}%`}></i></span>
         </div>
-        <div class="dex">{ids.map(id => <Mon dex={dex} id={id} isNew={unseen.has(id)} onOpen={() => onOpen([id])} />)}</div>
+        <div class="dex">{ids.map(id => <Mon key={id} dex={dex} id={id} isNew={unseen.has(id)} onOpen={() => onOpen([id])} />)}</div>
       </section>
     );
   }).filter(Boolean);
@@ -161,7 +161,7 @@ function Grid({dex, unseen, onOpen}: {dex: Dex; unseen: Set<number>; onOpen: (id
       <div class="toolbar">
         <div class="seg" role="radiogroup" aria-label={tr('Affichage', 'Show')}>
           {[['all', tr('Tous', 'All')], ['got', tr('Obtenus', 'Caught')], ['miss', tr('Manquants', 'Missing')]].map(([f, label]) => (
-            <button type="button" class={f === filter ? 'on' : undefined} aria-checked={f === filter} onClick={() => setFilter(f)}>{label}</button>
+            <button key={f} type="button" class={f === filter ? 'on' : undefined} role="radio" aria-checked={f === filter} onClick={() => setFilter(f)}>{label}</button>
           ))}
         </div>
         <input type="search" placeholder={tr('Numéro ou nom…', 'Number or name…')} aria-label={tr('Chercher un Pokémon', 'Search for a Pokémon')} value={query} onInput={e => setQuery(e.currentTarget.value)} />
@@ -188,7 +188,7 @@ function SaveHead({dex, unseen}: {dex: Dex; unseen: Set<number>}) {
     <div class="caps">
       {['l', 'r', 'u', 'c'].map(r => {
         let n = 0, t = 0; for (let i = 1; i <= 649; i++) if (RAR[i - 1] === r) { t++; if (got.has(i)) n++; }
-        return <span class="cap" style={`--c:var(--r-${RAR_KEY[r]})`}><i></i>{RLABEL[RAR_KEY[r]] + ' '}<b>{n}</b>{` / ${t}`}</span>;
+        return <span key={r} class="cap" style={`--c:var(--r-${RAR_KEY[r]})`}><i></i>{RLABEL[RAR_KEY[r]] + ' '}<b>{n}</b>{` / ${t}`}</span>;
       })}
     </div>
   </>;
@@ -217,7 +217,7 @@ function App() {
     const leave = (e: DragEvent) => { if (!e.relatedTarget) document.body.classList.remove('dragging'); };
     const drop = (e: DragEvent) => {
       e.preventDefault(); document.body.classList.remove('dragging');
-      const f = e.dataTransfer && e.dataTransfer.files[0]; if (f) load(f);
+      const f = e.dataTransfer && e.dataTransfer.files[0]; if (f) void load(f);
     };
     document.addEventListener('dragover', over); document.addEventListener('dragleave', leave); document.addEventListener('drop', drop);
     return () => { document.removeEventListener('dragover', over); document.removeEventListener('dragleave', leave); document.removeEventListener('drop', drop); };
@@ -238,7 +238,7 @@ function App() {
         <div class="save-row">
           {!live && <button type="button" class="btn" onClick={() => file.current!.click()}>{save ? tr('Charger une autre sauvegarde…', 'Load another save…') : tr('Charger ma sauvegarde…', 'Load my save…')}</button>}
           {!live && save && <button type="button" class="btn" onClick={() => { forgetSave(); setSave(null); }}>{tr('Oublier', 'Forget')}</button>}
-          <input type="file" ref={file} accept=".json,application/json" hidden onChange={e => { const f = e.currentTarget.files![0]; if (f) load(f); e.currentTarget.value = ''; }} />
+          <input type="file" ref={file} accept=".json,application/json" hidden onChange={e => { const f = e.currentTarget.files![0]; if (f) void load(f); e.currentTarget.value = ''; }} />
           {live
             ? <span class="hint">{tr('Suivie en direct : la sauvegarde de l\'app est relue à chaque ouverture de page.', 'Live: the app\'s save is read again every time a page opens.')}</span>
             : <span class="hint">{tr(<>Le <code>companion-state.json</code> de <code>~/Library/Application Support/PokeTokenBar/</code> marche aussi.</>, <>The <code>companion-state.json</code> in <code>~/Library/Application Support/PokeTokenBar/</code> works too.</>)}</span>}

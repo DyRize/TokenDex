@@ -10,7 +10,7 @@ import {useSave, useServed, useSettings} from '../../lib/hooks';
 import {LANG, LOCALE, tr} from '../../lib/i18n';
 import type {State} from '../../lib/save';
 import {EGG_SPRITE, bwSprite, spriteID, withForm} from '../../lib/sprites';
-import {hourKey, hourProfile, type Hours} from '../../lib/usage';
+import {hourKey, hourProfile, uncounted, type Hours, type Usage} from '../../lib/usage';
 
 // Walks forward hour by hour, spending the usual amount for that hour, until `need` tokens are burnt.
 function projectEta(need: number, prof: number[], now: Date) {
@@ -75,7 +75,7 @@ function Rate({hours, prof, now}: {hours: Hours; prof: number[]; now: Date}) {
   );
 }
 
-function Growing({st, g, hours}: {st: State; g: number; hours: Hours | null}) {
+function Growing({st, g, hours, missing}: {st: State; g: number; hours: Hours | null; missing: string[]}) {
   const a = st.active, now = new Date(), prof = hours && hourProfile(hours, now);
   const candies = st.inventory.rareCandy || 0;
   const id = a ? a.path[a.stage] || a.baseID : 0, costs = a ? stageCosts(a, g) : [], names = a ? a.planned.map(id => NAMES[id - 1]) : [];
@@ -135,13 +135,15 @@ function Growing({st, g, hours}: {st: State; g: number; hours: Hours | null}) {
             {eta ? <>{what + ' '}<small>{fmtEta(eta, now)}</small></> : <>{tok(need) + ' '}<small>{`${tr('avant', 'until')} ${what.toLowerCase()}`}</small></>}
           </div>
           <p class="sentence">{sentence}</p>
+          {missing.length > 0 && <p class="hint">{tr(`Sans les tokens de ${missing.join(', ')}, que le serveur local ne sait pas lire : l'app les compte, donc tout devrait arriver plus tôt qu'annoncé.`,
+            `Without the ${missing.join(', ')} tokens, which the local server cannot read: the app counts them, so everything should come sooner than shown.`)}</p>}
         </div>
       </div>
       <div class="stages" aria-label={tr('Progression par étape', 'Progress by stage')}>
         {a && costs.map((c, i) => {
           const fill = i < a.stage ? 100 : i > a.stage ? 0 : Math.min(100, a.used / c * 100);
           return (
-            <div class={`seg ${i < a.stage ? 'done' : i === a.stage ? 'now' : ''}`} style={`flex:${c / total}`}>
+            <div key={i} class={`seg ${i < a.stage ? 'done' : i === a.stage ? 'now' : ''}`} style={`flex:${c / total}`}>
               <span class="bar"><i style={`width:${fill.toFixed(1)}%`}></i></span><span class="lbl">{`${names[i] || '?'} · ${tok(c)}`}</span>
             </div>
           );
@@ -169,12 +171,12 @@ function Growing({st, g, hours}: {st: State; g: number; hours: Hours | null}) {
 function App() {
   const {save} = useSave(60e3);
   const [settings] = useSettings(60e3);
-  const usage = useServed<{hours: Hours}>('usage.json', 60e3);
+  const usage = useServed<Usage>('usage.json', 60e3);
   return (
     <div class="wrap">
       <Header eyebrow={saveEyebrow(save)} title={tr('En cours', 'Growing')} save={save}
         lede={tr('Où en est ton Pokémon, ce qu\'il lui reste avant d\'évoluer et de graduer, et quand ça devrait tomber à ton rythme habituel.', 'Where your Pokémon stands, what it still needs to evolve and graduate, and when that should happen at your usual pace.')} />
-      {save ? <Growing st={save.st} g={settings.g} hours={usage && usage.hours} /> : <section class="panel"><NoSave /></section>}
+      {save ? <Growing st={save.st} g={settings.g} hours={usage && usage.hours} missing={uncounted(usage)} /> : <section class="panel"><NoSave /></section>}
       <footer>
         {tr(<>
           <p>Coûts repris de <code>PokemonBalance.phaseThreshold</code> : une ligne à k formes coûte T·i / (k(k+1)/2) pour la i-ème forme, T = 750 M, 1,875 Md, 3 Md ou 6 Md selon la rareté, divisé par deux sur une ligne déjà graduée, puis multiplié par ton curseur de croissance. Un bonbon vaut 100 M ; l'excédent passe à la forme suivante, mais il est perdu à la graduation.</p>

@@ -1,0 +1,21 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc", "import", "react", "jsx-a11y", "vitest"],
+  "categories": {"correctness": "error"},
+  "rules": {
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "off",
+    "react/react-in-jsx-scope": "off",
+    "react/style-prop-object": "off",
+    "react/purity": "off",
+    "react/immutability": "off",
+    "jsx-a11y/prefer-tag-over-role": "off",
+    "jsx-a11y/no-noninteractive-element-interactions": "off",
+    "jsx-a11y/click-events-have-key-events": "off",
+    "jsx-a11y/control-has-associated-label": "off",
+    "unicorn/no-new-array": "off",
+    "typescript/no-misused-promises": ["error", {"checksVoidReturn": false}],
+    "no-unused-expressions": ["error", {"allowTernary": true}]
+  },
+  "ignorePatterns": ["dist"]
+}

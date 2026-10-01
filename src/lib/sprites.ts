@@ -1,4 +1,5 @@
-const SPRITES = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/';
+// PokeAPI's sprites, relayed and kept on disk by serve.py.
+const SPRITES = 'sprites/';
 export const EGG_SPRITE = SPRITES + 'pokemon/egg.png';
 export const itemSprite = (name: string) => `${SPRITES}items/${name}.png`;
 // Black & White sprites; the animated ones are GIFs.

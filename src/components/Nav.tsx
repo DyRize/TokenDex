@@ -1,3 +1,4 @@
+import {version} from '../../package.json';
 import {setLang, tr} from '../lib/i18n';
 import './nav.css';
 
@@ -11,6 +12,8 @@ const PAGES = [
   ['chance-tirage.html', tr('Chance', 'Luck')],
   ['chrono-pokedex.html', 'Chrono'],
 ];
+// "alpha" in 0.1.0-alpha.1, nothing once released.
+const STAGE = version.split('-')[1]?.split('.')[0];
 
 export function Nav() {
   const here = decodeURIComponent(location.pathname.split('/').pop() || '') || 'index.html';
@@ -18,8 +21,9 @@ export function Nav() {
     <nav class="ptb-nav" aria-label="TokenDex">
       <div class="in">
         <a class="brand" href="index.html"><span>TokenDex</span></a>
+        {STAGE && <span class="stage" title={`Version ${version}`}>{STAGE}</span>}
         <div class="tabs">
-          {PAGES.map(([href, label]) => <a href={href} aria-current={href === here ? 'page' : undefined}>{label}</a>)}
+          {PAGES.map(([href, label]) => <a key={href} href={href} aria-current={href === here ? 'page' : undefined}>{label}</a>)}
         </div>
         <button type="button" class="lang" lang={tr('en', 'fr')} title={tr('English', 'Français')} onClick={() => setLang(tr('en', 'fr'))}>
           {tr('EN', 'FR')}

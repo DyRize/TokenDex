@@ -1,15 +1,30 @@
 import type {ComponentChildren} from 'preact';
 import {render} from 'preact';
+import {useErrorBoundary} from 'preact/hooks';
 import {fmtSaveDate} from '../lib/format';
 import {tr} from '../lib/i18n';
 import type {Save} from '../lib/save';
 import {EGG_SPRITE, bwSprite, spriteID} from '../lib/sprites';
 import {Nav} from './Nav';
+import '@fontsource/nunito/latin-700.css';
+import '@fontsource/nunito/latin-800.css';
+
+// A page that crashes (a save shaped in a way nobody tried yet) says so instead of going blank, and the menu stays usable.
+function Guard({children}: {children: ComponentChildren}) {
+  const [error] = useErrorBoundary();
+  if (!error) return children;
+  return (
+    <div class="wrap"><section class="panel">
+      <p>{tr('Cette page a planté. Recharge-la ; si ça recommence, fais une capture de ce message pour le signaler :', 'This page crashed. Reload it; if it happens again, take a screenshot of this message to report it:')}</p>
+      <pre style="white-space:pre-wrap;font-size:12px">{String(error && (error as Error).stack || error)}</pre>
+    </section></div>
+  );
+}
 
 /** Mounts a page: the menu, then the page itself in the centered column. */
 export function mount(title: string, App: () => ComponentChildren) {
   document.title = `${title} · TokenDex`;
-  render(<><Nav /><App /></>, document.getElementById('root')!);
+  render(<><Nav /><Guard><App /></Guard></>, document.getElementById('root')!);
 }
 
 export const saveEyebrow = (save: Save | null) => save
@@ -43,7 +58,7 @@ export function Tiles({items}: {items: TileData[]}) {
   return (
     <div class="tiles">
       {items.map(([k, v, s, cls]) => (
-        <div class={cls ? `tile ${cls}` : 'tile'}>
+        <div key={k} class={cls ? `tile ${cls}` : 'tile'}>
           <span class="k">{k}</span><span class="v">{v}</span>{s !== undefined && <span class="s">{s}</span>}
         </div>
       ))}

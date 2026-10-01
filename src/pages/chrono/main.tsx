@@ -5,8 +5,8 @@ import {toGraduation} from '../../lib/balance';
 import {tok} from '../../lib/format';
 import {useSave} from '../../lib/hooks';
 import {LANG, LOCALE, tr} from '../../lib/i18n';
-import {appSettings, fetchServedJSON, type Save, type Settings} from '../../lib/save';
-import {hourProfile, type Hours} from '../../lib/usage';
+import {appSettings, fetchServedJSON, lastServed, lastSettings, type Save, type Settings} from '../../lib/save';
+import {hourProfile, uncounted, type Usage} from '../../lib/usage';
 import {COST_N, COST_S48, COST_S64, DUPPCT, HATCH_N, HATCH_S48, HATCH_S64} from './model';
 import type {SimInit, StratResult} from './sim';
 
@@ -31,7 +31,7 @@ const FONT = '-apple-system, system-ui, sans-serif';
 const nf = new Intl.NumberFormat(LOCALE);
 const css = (n: string) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 // The translated sentences carry their emphasis as <b> tags.
-const bold = (s: string) => s.split(/<b>(.*?)<\/b>/).map((x, i) => i % 2 ? <b>{x}</b> : x);
+const bold = (s: string) => s.split(/<b>(.*?)<\/b>/).map((x, i) => i % 2 ? <b key={i}>{x}</b> : x);
 
 function whenTxt(y: number) {
   if (y * 365 < 1) return tr('aujourd\'hui', 'today');
@@ -166,16 +166,16 @@ function Beam({years, g, rate, nSel, startN, base, label}: {years: Years; g: num
         <rect x={L.l} y={L.t} width={(hx - L.l).toFixed(1)} height={PH} fill="var(--ink)" opacity="0.06" />
         {hx - L.l > 70 && <text x={L.l + 8} y={L.t + 15} fill="var(--ink-3)" font-size="11" font-family={FONT} letter-spacing=".8">{tr('DÉJÀ À TOI', 'ALREADY YOURS')}</text>}
       </>}
-      {RATES.map((r, i) => <path d={path(r)} fill="none" stroke={`var(--s${i + 1})`} stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />)}
+      {RATES.map((r, i) => <path key={r} d={path(r)} fill="none" stroke={`var(--s${i + 1})`} stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />)}
       <path d={path(rate)} fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-dasharray="1 5" stroke-linecap="round" />
-      {ends.map(e => <text x={L.l + PW + 8} y={(e.y + 4).toFixed(1)} fill={e.c} font-size="11.5" font-weight={e.bold ? 700 : 400} font-family={FONT}>{e.t}</text>)}
+      {ends.map(e => <text key={e.t} x={L.l + PW + 8} y={(e.y + 4).toFixed(1)} fill={e.c} font-size="11.5" font-weight={e.bold ? 700 : 400} font-family={FONT}>{e.t}</text>)}
       {nSel >= startN && <>
         <line x1={mx} y1={L.t} x2={mx} y2={L.t + PH} stroke="var(--ink-2)" stroke-width="1" stroke-dasharray="3 4" />
         <circle cx={mx} cy={yOf(years(nSel, rate, g)).toFixed(1)} r="6" fill="var(--ink)" stroke="var(--surface)" stroke-width="2" />
       </>}
     </>;
     legend = <>
-      {RATES.map((r, i) => <span class="lg"><i style={`background:var(--s${i + 1})`}></i>{`${r} ${tr('M/jour', 'M/day')}`}</span>)}
+      {RATES.map((r, i) => <span key={r} class="lg"><i style={`background:var(--s${i + 1})`}></i>{`${r} ${tr('M/jour', 'M/day')}`}</span>)}
       <span class="lg on"><i style="background:var(--ink)"></i>{`${tr('ton débit', 'your rate')} · ${rate} ${tr('M/jour', 'M/day')}`}</span>
     </>;
   }
@@ -187,7 +187,7 @@ function Beam({years, g, rate, nSel, startN, base, label}: {years: Years; g: num
       <div class="tip" ref={tipRef}>
         {n != null && <div class="th">{`${n} ${label}`}</div>}
         {n != null && (n < startN ? tr('Déjà à toi.', 'Already yours.') : <table><tbody>
-          {RATES.map((r, i) => <tr><td><span class="sw" style={`background:var(--s${i + 1})`}></span>{r + tr(' M/j', ' M/d')}</td><td>{durTxt(years(n, r, g))}</td></tr>)}
+          {RATES.map((r, i) => <tr key={r}><td><span class="sw" style={`background:var(--s${i + 1})`}></span>{r + tr(' M/j', ' M/d')}</td><td>{durTxt(years(n, r, g))}</td></tr>)}
           <tr><td><span class="sw" style="background:var(--ink)"></span>{tr('toi', 'you')}</td><td>{durTxt(years(n, rate, g))}</td></tr>
         </tbody></table>)}
       </div>
@@ -219,15 +219,15 @@ function Heat({years, g, base, label}: {years: Years; g: number; base: number; l
   return (
     <table class="grid">
       <caption>{tr('Lecture : ligne = tokens par jour, colonne = nombre d\'espèces visé.', 'How to read it: row = tokens per day, column = number of species aimed for.')}</caption>
-      <thead><tr><th></th>{NS.map(n => <th scope="col">{n}</th>)}</tr></thead>
+      <thead><tr><th></th>{NS.map(n => <th key={n} scope="col">{n}</th>)}</tr></thead>
       <tbody>
         {RROWS.map(r => (
-          <tr>
+          <tr key={r}>
             <th scope="row" class="row">{r + tr(' M/j', ' M/d')}</th>
             {NS.map(n => {
-              if (n <= base) return <td class="done" title={`${n} ${label}${tr(' : déjà à toi', ': already yours')}`}>✓</td>;
+              if (n <= base) return <td key={n} class="done" title={`${n} ${label}${tr(' : déjà à toi', ': already yours')}`}>✓</td>;
               const y = years(n, r, g), b = bucket(y);
-              return <td style={`background:${ramp[b]};color:${inks[b]}`} title={tr(`${n} espèces à ${r} M/jour`, `${n} species at ${r} M/day`)}>{durTxt(y)}</td>;
+              return <td key={n} style={`background:${ramp[b]};color:${inks[b]}`} title={tr(`${n} espèces à ${r} M/jour`, `${n} species at ${r} M/day`)}>{durTxt(y)}</td>;
             })}
           </tr>
         ))}
@@ -266,13 +266,26 @@ function SmallChart({label, valueAt, left, log, dom, ticks, fmt, color, mark}: S
         <circle cx={mk.x.toFixed(1)} cy={mk.y.toFixed(1)} r="5" fill="var(--ink)" stroke="var(--surface)" stroke-width="2" />
         <text x={(mk.right ? mk.x + 10 : mk.x - 10).toFixed(1)} y={(mk.y - 8).toFixed(1)} text-anchor={mk.right ? 'start' : 'end'} fill="var(--ink)" font-size="11" font-weight="700" font-family={FONT}>{mk.label}</text>
       </>}
-      {[100, 300, 500, 649].map(n => <text x={X(n).toFixed(1)} y={m.t + ph + 20} text-anchor="middle" fill="var(--ink-3)" font-size="10.5" font-family={FONT}>{n}</text>)}
+      {[100, 300, 500, 649].map(n => <text key={n} x={X(n).toFixed(1)} y={m.t + ph + 20} text-anchor="middle" fill="var(--ink-3)" font-size="10.5" font-family={FONT}>{n}</text>)}
       <text x={m.l + pw / 2} y={hh - 3} text-anchor="middle" fill="var(--ink-3)" font-size="10" font-family={FONT} letter-spacing="1">{tr('ESPÈCES', 'SPECIES')}</text>
     </svg>
   );
 }
 
 type SimReply = {res: StratResult[]} | {byRate: ByRate};
+// The last simulation, shown right away on the next visit while the fresh one runs.
+const SIM_KEY = 'tokendex-chrono-sim-v1';
+function lastSim(params: string): StratResult[] | null {
+  try {
+    const v = JSON.parse(localStorage.getItem(SIM_KEY) || 'null');
+    if (!v || v.params !== params) return null;
+    return v.res.map((r: Record<keyof StratResult, number[]>) => ({tokens: Float64Array.from(r.tokens), hatches: Float64Array.from(r.hatches), candies: Float64Array.from(r.candies), eggs: Float64Array.from(r.eggs)}));
+  } catch { return null; }
+}
+function keepSim(params: string, res: StratResult[]) {
+  try { localStorage.setItem(SIM_KEY, JSON.stringify({params, res: res.map(r => ({tokens: [...r.tokens], hatches: [...r.hatches], candies: [...r.candies], eggs: [...r.eggs]}))})); } catch {}
+}
+const bootOf = (set: Settings, usage: Usage | null) => ({set, rate: usage && hourProfile(usage.hours, Date.now()).reduce((a, b) => a + b, 0) / 1e6, missing: uncounted(usage)});
 
 function App() {
   const {save} = useSave();
@@ -280,8 +293,10 @@ function App() {
   const [mode, setMode] = useState<Mode>('n');
   const [p, setP] = useState(loadPrefs);
   const [strat, setStrat] = useState<number | null>(null);
-  const [sim, setSim] = useState<{res: StratResult[] | null; byRate: ByRate | null; busy: boolean}>({res: null, byRate: null, busy: false});
-  const [boot, setBoot] = useState<{set: Settings; rate: number | null} | null>(null);
+  const simParams = [p.G, p.S, p.F, p.F ? p.R : 0, !!mine].join('|');
+  const [sim, setSim] = useState<{res: StratResult[] | null; byRate: ByRate | null; busy: boolean}>(() => ({res: lastSim(simParams), byRate: null, busy: false}));
+  // What the app said last time, then what it says now.
+  const [boot, setBoot] = useState(() => bootOf(lastSettings(), lastServed('usage.json')));
   const update = (patch: Partial<Prefs>) => {
     const next = {...p, ...patch};
     setP(next);
@@ -293,27 +308,30 @@ function App() {
     const days = mine && mine.since ? (Date.now() - mine.since) / 864e5 : 0;
     return mine && days >= 3 ? clampR(mine.used / days / 1e6) : null;
   }, [mine]);
-  const fromApp = boot && (boot.set.live || mine) ? boot.set : null;
-  const my = {G: fromApp && fromApp.g, S: fromApp && fromApp.s, R: boot && boot.rate != null ? clampR(boot.rate) : saveRate};
-  const rFrom = boot && boot.rate != null ? tr('Ta moyenne sur 14 jours, lue dans tes logs', 'Your 14-day average, read from your logs') : tr('Ta moyenne depuis ta première capture', 'Your average since your first catch');
+  const fromApp = boot.set.live || mine ? boot.set : null;
+  const my = {G: fromApp && fromApp.g, S: fromApp && fromApp.s, R: boot.rate != null ? clampR(boot.rate) : saveRate};
+  const rFrom = boot.rate != null ? tr('Ta moyenne sur 14 jours, lue dans tes logs', 'Your 14-day average, read from your logs') : tr('Ta moyenne depuis ta première capture', 'Your average since your first catch');
+  const without = boot.rate != null && boot.missing.length ? tr(` Sans ${boot.missing.join(', ')}, que le serveur local ne sait pas lire.`, ` Without ${boot.missing.join(', ')}, which the local server cannot read.`) : '';
   const applyMine = () => update({G: my.G ?? p.G, R: my.R ?? p.R, S: my.S ?? p.S});
   useEffect(() => {
-    Promise.all([appSettings(), fetchServedJSON<{hours: Hours}>('usage.json')]).then(([set, usage]) =>
-      setBoot({set, rate: usage && hourProfile(usage.hours, Date.now()).reduce((a, b) => a + b, 0) / 1e6}));
+    void Promise.all([appSettings(), fetchServedJSON<Usage>('usage.json')]).then(([set, usage]) => setBoot(bootOf(set, usage)));
   }, []);
-  useEffect(() => { if (boot && (boot.set.live || boot.rate != null || mine)) applyMine(); }, [boot]);
+  useEffect(() => { if (boot.set.live || boot.rate != null || mine) applyMine(); }, [boot]);
 
   // Strategies are simulated in a worker, again whenever an input of the simulation settles.
-  const simKey = [p.G, p.S, p.F, p.F ? p.R : 0, mine ? mine.at : 0].join('|');
+  const simKey = simParams + '|' + (mine ? mine.at : 0);
   const simmed = useRef(false);
   useEffect(() => {
+    // On arrival, the last simulation stays on screen quietly while the fresh one runs.
     let w: Worker | undefined, alive = true;
+    const quiet = !simmed.current && sim.res != null;
     const t = setTimeout(() => {
-      setSim(s => ({...s, busy: true, byRate: null}));
+      if (!quiet) setSim(s => ({...s, busy: true, byRate: null}));
       w = new Worker(new URL('./sim.worker.ts', import.meta.url), {type: 'module'});
       w.onmessage = (e: MessageEvent<SimReply>) => {
         if (!alive) return;
         const r = e.data;
+        if ('res' in r) keepSim(simParams, r.res);
         setSim(s => 'byRate' in r ? {...s, byRate: r.byRate} : {res: r.res, byRate: s.byRate, busy: false});
       };
       w.postMessage({params: {g: p.G / 100, s: p.S / 100, rate: p.R, freeWeek: p.F, init: simInit(mine, p.G)}, rates: RROWS});
@@ -377,7 +395,7 @@ function App() {
         <div class="panel-head"><h2>{tr('Ta partie', 'Your game')}</h2><p>{mine && mine.since ? tr(`Première capture le ${first}, il y a ${days} jour${days > 1 ? 's' : ''}.`, `First catch on ${first}, ${days} day${days > 1 ? 's' : ''} ago.`) : ''}</p></div>
         {mine && <div class="tiles mine-tiles">
           {[['Pokédex', `${mine.dex} / 649`], [tr('Espèces shiny', 'Shiny species'), mine.shiny], [tr('Éclosions', 'Hatches'), nf.format(mine.hatches) + (mine.active ? ' + 1' : '')],
-            [tr('Bonbons', 'Rare Candies'), mine.candies], [tr('Solde boutique', 'Shop balance'), tok(mine.wallet)]].map(([k, v]) => <div class="tile"><span class="k">{k}</span><span class="v">{v}</span></div>)}
+            [tr('Bonbons', 'Rare Candies'), mine.candies], [tr('Solde boutique', 'Shop balance'), tok(mine.wallet)]].map(([k, v]) => <div key={k} class="tile"><span class="k">{k}</span><span class="v">{v}</span></div>)}
         </div>}
         <p class="sentence">{!mine ? tr(<>Aucune sauvegarde chargée : tout part de zéro. Charge-la depuis <a href="index.html" style="color:var(--s3)">l'accueil</a>.</>, <>No save loaded: everything starts from zero. Load it from <a href="index.html" style="color:var(--s3)">the home page</a>.</>)
           : !mine.hatches ? '' : bold(LANG === 'fr' ? `Pour <b>${mine.hatches} éclosions</b>, le modèle attend <b>${exp} espèces</b> en médiane. Tu en as ${mine.dex} : `
@@ -390,13 +408,13 @@ function App() {
         <div class="modes" role="radiogroup" aria-label={tr('Type de Pokédex', 'Pokédex type')}>
           {([['n', tr('Dex normal', 'Normal dex'), tr('649 espèces', '649 species')], ['s64', tr('Dex shiny', 'Shiny dex'), tr('sans charme · 1/64', 'no charm · 1/64')],
             ['s48', tr('Dex shiny', 'Shiny dex'), tr('avec charme · 1/48', 'with charm · 1/48') + (mine && mine.charm ? tr(' · tu l\'as', ' · you have it') : '')]] as const).map(([m, name, sub]) =>
-            <button type="button" class={m === mode ? 'mode on' : 'mode'} onClick={() => setMode(m)}>{name}<em>{sub}</em></button>)}
+            <button key={m} type="button" class={m === mode ? 'mode on' : 'mode'} role="radio" aria-checked={m === mode} onClick={() => setMode(m)}>{name}<em>{sub}</em></button>)}
         </div>
       </section>
 
       <section class="panel controls" aria-label={tr('Réglages', 'Settings')}>
         {slider('g', 'G', tr('Croissance', 'Growth'), G + tr(' %', '%'), my.G != null ? tr(`Réglages → seuils de croissance. Dans ton app : ${my.G} %.`, `Settings → growth thresholds. In your app: ${my.G}%.`) : tr('Réglages → seuils de croissance. 100 % = valeurs par défaut.', 'Settings → growth thresholds. 100% = defaults.'))}
-        {slider('r', 'R', tr('Tokens / jour', 'Tokens / day'), R + ' M', my.R != null ? tr(`${rFrom} : ${my.R} M. L'app est calibrée sur 253 M.`, `${rFrom}: ${my.R} M. The app is calibrated on 253 M.`) : tr('Total quotidien lu dans tes logs, tous outils confondus. 253 M = la moyenne sur laquelle l\'app est calibrée.', 'Daily total read from your logs, all tools combined. 253 M = the average the app is calibrated on.'))}
+        {slider('r', 'R', tr('Tokens / jour', 'Tokens / day'), R + ' M', my.R != null ? tr(`${rFrom} : ${my.R} M. L'app est calibrée sur 253 M.`, `${rFrom}: ${my.R} M. The app is calibrated on 253 M.`) + without : tr('Total quotidien lu dans tes logs, tous outils confondus. 253 M = la moyenne sur laquelle l\'app est calibrée.', 'Daily total read from your logs, all tools combined. 253 M = the average the app is calibrated on.'))}
         {slider('n', 'NSEL', tr('Objectif', 'Goal'), NSEL + ' ' + lab, tr('Le dex va de Bulbizarre #1 à Genesect #649.', 'The dex runs from Bulbasaur #1 to Genesect #649.'))}
         {slider('s', 'S', tr('Boutique', 'Shop'), S + tr(' %', '%'), my.S != null ? tr(`Réglages → prix de la boutique. Dans ton app : ${my.S} %.`, `Settings → shop prices. In your app: ${my.S}%.`) : tr('Réglages → prix de la boutique. Un bonbon coûte 500 M × ce taux.', 'Settings → shop prices. A Rare Candy costs 500 M × this rate.'))}
         {slider('f', 'F', tr('Bonbons gratuits / semaine', 'Free Rare Candies / week'), String(F), tr('Gagnés en atteignant tes limites : 5 à 100 % de l\'hebdo, 1 par session.', 'Earned by hitting your limits: 5 to 100 % of the weekly one, 1 per session.'))}
@@ -412,7 +430,7 @@ function App() {
           {STRATS.map((st, i) => {
             const t = on && done ? tr('déjà fait', 'already done') : res ? durTxt(stratYears(res, i, NSEL, R)) + (i === best ? tr(' · le plus rapide', ' · fastest') : '') : on ? tr('calcul…', 'computing…') : st.sub;
             const sel = !!res && i === cur;
-            return <button type="button" class={sel ? 'mode on' : 'mode'} role="radio" aria-checked={sel} disabled={!on} onClick={() => setStrat(i)}>{st.name}<em>{t}</em></button>;
+            return <button key={i} type="button" class={sel ? 'mode on' : 'mode'} role="radio" aria-checked={sel} disabled={!on} onClick={() => setStrat(i)}>{st.name}<em>{t}</em></button>;
           })}
         </div>
         <p class="hint" style="margin-top:12px">{tr(
@@ -435,7 +453,7 @@ function App() {
         <div class="steps">
           {steps.length ? steps.map(n => {
             const y = years(n, R, g);
-            return <div class={n === NSEL ? 'step sel' : 'step'}><b>{n + (on ? '' : ' ✦')}</b><span>{`${tr('dans', 'in')} ${durTxt(y)}`}</span><span>{whenTxt(y)}</span></div>;
+            return <div key={n} class={n === NSEL ? 'step sel' : 'step'}><b>{n + (on ? '' : ' ✦')}</b><span>{`${tr('dans', 'in')} ${durTxt(y)}`}</span><span>{whenTxt(y)}</span></div>;
           }) : <p class="hint">{tr('Plus rien à viser dans ce dex.', 'Nothing left to aim for in this dex.')}</p>}
         </div>
       </section>}

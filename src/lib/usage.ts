@@ -1,5 +1,9 @@
 /* Hourly usage from serve.py's usage.json, keyed by local hour. */
 export type Hours = Record<string, number>;
+// `sources` is missing from a serve.py started before it existed.
+export interface Usage { hours: Hours; sources?: {id: string; counted: boolean}[] }
+// The providers that grew the Pokémon today but that serve.py cannot read, so every estimate leaves them out.
+export const uncounted = (usage: Usage | null) => (usage && usage.sources || []).filter(s => !s.counted).map(s => s.id);
 export const hourKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T${String(d.getHours()).padStart(2, '0')}`;
 // Average tokens for each hour of the day over the last 14 full days.
 export function hourProfile(hours: Hours, now: Date | number) {

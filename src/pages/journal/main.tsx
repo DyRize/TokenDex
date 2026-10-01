@@ -8,7 +8,7 @@ import {useSave, useServed} from '../../lib/hooks';
 import {LOCALE, tr} from '../../lib/i18n';
 import type {DexEntry} from '../../lib/save';
 import {bwSprite, spriteID, withForm} from '../../lib/sprites';
-import {hourKey, type Hours} from '../../lib/usage';
+import {hourKey, uncounted, type Hours, type Usage} from '../../lib/usage';
 
 const dayKey = (t: number) => hourKey(new Date(t)).slice(0, 10);
 const fmtDur = (ms: number) => {
@@ -107,7 +107,7 @@ function CaptureRow({c}: {c: Capture}) {
   );
 }
 
-function Journal({dex, hours}: {dex: DexEntry[]; hours: Hours | null}) {
+function Journal({dex, hours, missing}: {dex: DexEntry[]; hours: Hours | null; missing: string[]}) {
   const caps = captures(dex, hours), timed = caps.filter(c => c.dur != null);
   const byDay = new Map<string, Capture[]>();
   for (const c of caps) { const k = dayKey(c.at); if (!byDay.has(k)) byDay.set(k, []); byDay.get(k)!.push(c); }
@@ -126,7 +126,11 @@ function Journal({dex, hours}: {dex: DexEntry[]; hours: Hours | null}) {
   if (bigDay) tiles.push([tr('Record de tokens', 'Most tokens in a day'), tok(bigDay[1]), fmtDayShort(noon(bigDay[0]))]);
   if (withTok.length) tiles.push([tr('Coût moyen', 'Average cost'), tok(withTok.reduce((x, c) => x + c.tokens!, 0) / withTok.length), tr('en tokens par graduation', 'in tokens per graduation')]);
   return <>
-    <section class="panel" aria-label="Records"><Tiles items={tiles} /></section>
+    <section class="panel" aria-label="Records">
+      <Tiles items={tiles} />
+      {hours && missing.length > 0 && <p class="hint">{tr(`Tokens comptés sans ceux de ${missing.join(', ')}, que le serveur local ne sait pas lire : l'app les compte, donc les vrais totaux sont plus élevés.`,
+        `Tokens counted without the ${missing.join(', ')} ones, which the local server cannot read: the app counts them, so the real totals are higher.`)}</p>}
+    </section>
     {hours && (
       <section class="panel" aria-label={tr('Tokens et graduations par jour', 'Tokens and graduations per day')}>
         <div class="panel-head">
@@ -144,12 +148,12 @@ function Journal({dex, hours}: {dex: DexEntry[]; hours: Hours | null}) {
       <div class="panel-head"><h2>{tr('Les graduations', 'Graduations')}</h2><p>{tr(`${caps.length} graduations, de la plus récente à la plus ancienne.`, `${caps.length} graduations, newest first.`)}</p></div>
       <div class="days">
         {[...byDay.entries()].reverse().map(([k, list]) => (
-          <div class="day">
+          <div key={k} class="day">
             <div class="day-head">
               <h3>{fmtDayLong(list[0].at)}</h3>
               <span>{`${list.length} graduation${list.length > 1 ? 's' : ''}${dayTokens[k] ? ' · ' + tok(dayTokens[k]) + tr(' brûlés', ' burnt') : ''}`}</span>
             </div>
-            {list.slice().reverse().map(c => <CaptureRow c={c} />)}
+            {list.slice().reverse().map(c => <CaptureRow key={c.d.id || c.at} c={c} />)}
           </div>
         ))}
       </div>
@@ -159,12 +163,12 @@ function Journal({dex, hours}: {dex: DexEntry[]; hours: Hours | null}) {
 
 function App() {
   const {save} = useSave();
-  const usage = useServed<{hours: Hours}>('usage.json');
+  const usage = useServed<Usage>('usage.json');
   return (
     <div class="wrap">
       <Header eyebrow={saveEyebrow(save)} title={tr('Journal de chasse', 'Hunt journal')} save={save}
         lede={tr("Toutes tes graduations dans l'ordre, avec le temps et les tokens qu'a demandés chacune, et ta consommation de tokens jour par jour.", 'All your graduations in order, with the time and tokens each one took, and your token use day by day.')} />
-      {save ? <Journal dex={save.st.dex} hours={usage && usage.hours} /> : <section class="panel"><NoSave /></section>}
+      {save ? <Journal dex={save.st.dex} hours={usage && usage.hours} missing={uncounted(usage)} /> : <section class="panel"><NoSave /></section>}
       <footer>
         <p>{tr("Chaque ligne est une entrée du Pokédex de ta sauvegarde, datée à la graduation. La durée est l'écart avec la graduation précédente, œuf compris ; les tokens sont ceux brûlés dans cet intervalle, d'après l'historique heure par heure de l'app (serveur local). Une graduation en moins d'une minute, c'est presque toujours des bonbons : ils font grandir sans brûler de tokens.", "Each row is a Pokédex entry from your save, dated at graduation. The duration is the gap since the previous graduation, egg included; the tokens are the ones burnt in that gap, from the app's hour by hour history (local server). A graduation in under a minute is almost always Rare Candies: they grow a Pokémon without burning tokens.")}</p>
       </footer>

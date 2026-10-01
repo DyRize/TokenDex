@@ -20,7 +20,7 @@ fi
 if [ package-lock.json -nt node_modules/.package-lock.json ]; then
   npm install || exit 1
 fi
-if [ ! -f dist/index.html ] || [ -n "$(find src *.html package-lock.json vite.config.ts -newer dist/index.html | head -1)" ]; then
+if [ ! -f dist/index.html ] || [ -n "$(find src *.html package.json package-lock.json vite.config.ts -newer dist/index.html | head -1)" ]; then
   npm run build || exit 1
 fi
 

@@ -65,16 +65,30 @@ export async function readSaveFile(f: {text(): Promise<string>; lastModified: nu
   return v;
 }
 
+/* What serve.py answered last time, so a page first renders with it instead of jumping when the fresh answer lands. */
+const LAST_KEY = 'tokendex-last-v1:';
+export function lastServed<T>(key: string): T | null {
+  try { return JSON.parse(localStorage.getItem(LAST_KEY + key) || 'null'); } catch { return null; }
+}
+function keepServed(key: string, v: unknown) {
+  try { if (v == null) localStorage.removeItem(LAST_KEY + key); else localStorage.setItem(LAST_KEY + key, JSON.stringify(v)); } catch {}
+}
+
 /* Served by serve.py: save.json is the app's live companion-state.json, read again on every request. */
 export async function fetchServedSave(): Promise<Save | null> {
+  let v: Save | null = null;
   try {
     const r = await fetch('save.json', {cache: 'no-store'});
-    if (!r.ok) return null;
-    return await readSaveFile({text: () => r.text(), lastModified: Date.parse(r.headers.get('Last-Modified') || '') || Date.now()});
-  } catch { return null; }
+    if (r.ok) v = await readSaveFile({text: () => r.text(), lastModified: Date.parse(r.headers.get('Last-Modified') || '') || Date.now()});
+  } catch {}
+  keepServed('live', !!v);
+  return v;
 }
 export async function fetchServedJSON<T>(path: string): Promise<T | null> {
-  try { const r = await fetch(path, {cache: 'no-store'}); return r.ok ? await r.json() : null; } catch { return null; }
+  let v: T | null = null;
+  try { const r = await fetch(path, {cache: 'no-store'}); if (r.ok) v = await r.json(); } catch {}
+  keepServed(path, v);
+  return v;
 }
 
 /** The app's growth and shop sliders in percent. */
@@ -86,10 +100,12 @@ export function storedSettings(): Settings {
 }
 export function storeSettings(v: Settings) { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify({g: v.g, s: v.s})); } catch {} }
 // Live from serve.py, else the last values typed on Prochains.
+type AppSettings = {growth: number; shop: number};
+const liveSettings = (v: AppSettings | null): Settings | null => v && {g: v.growth, s: v.shop, live: true};
 export async function appSettings(): Promise<Settings> {
-  const live = await fetchServedJSON<{growth: number; shop: number}>('settings.json');
-  if (!live) return storedSettings();
-  const v = {g: live.growth, s: live.shop};
+  const v = liveSettings(await fetchServedJSON<AppSettings>('settings.json'));
+  if (!v) return storedSettings();
   storeSettings(v);
-  return {...v, live: true};
+  return v;
 }
+export const lastSettings = () => liveSettings(lastServed<AppSettings>('settings.json')) || storedSettings();

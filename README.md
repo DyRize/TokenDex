@@ -11,7 +11,7 @@ Des pages web autour de ta sauvegarde [PokeTokenBar](https://github.com/chattymi
 - **Chance** : si tu as eu de la chance ou pas sur tes tirages.
 - **Chrono** : le temps qu'il te reste pour compléter le Pokédex, en partant de ta collection et à ton rythme réel, avec les dates de tes prochains paliers.
 
-Il faut un Mac avec PokeTokenBar installé, et une connexion internet pour les sprites.
+Il faut un Mac avec PokeTokenBar installé, et une connexion internet la première fois qu'un sprite s'affiche.
 
 L'interface existe en français et en anglais : bouton FR/EN dans le menu, sinon c'est la langue du navigateur qui décide.
 
@@ -33,6 +33,10 @@ Les pages sont en Preact + TypeScript, construites par Vite : une entrée HTML p
 
 `npm run dev` sert les pages sur http://127.0.0.1:5173 et les recharge à chaque modification. Laisse `serve.py` tourner à côté : c'est lui qui fournit la sauvegarde et l'historique, le serveur de dev les lui demande. `npm run typecheck` vérifie les types, `npm run build` refait `dist/`.
 
+Pour développer, il faut Node 24 (`nvm use` le prend dans `.nvmrc`) : `npm test` lance les tests (Vitest), `npm run lint` le lint (Oxlint, avec les règles qui ont besoin des types via tsgo). Pour seulement lancer l'app, Node 20.19 suffit.
+
+La version est dans `package.json` ; tant qu'elle porte un suffixe (`0.1.0-alpha.1`), le menu affiche un badge « alpha ».
+
 ## Ce que le serveur lit
 
 Il n'écoute que sur ta machine (`127.0.0.1`), ne répond qu'aux adresses `127.0.0.1:8649` et `localhost:8649` (un site web ne peut donc pas passer par lui pour lire tes données), et ne fait que lire : il n'écrit jamais dans les fichiers de l'app :
@@ -41,4 +45,4 @@ Il n'écoute que sur ta machine (`127.0.0.1`), ne répond qu'aux adresses `127.0
 - `~/Library/Application Support/PokeTokenBar/usage-cache.json` : l'historique de tokens, dont il ne garde que le total par heure (ni prompts, ni projets).
 - Les curseurs Croissance et Boutique des réglages de l'app, rien d'autre.
 
-Aucune de tes données ne quitte ton Mac. Le navigateur télécharge les sprites de Pokémon depuis GitHub (PokeAPI), et le serveur ceux des dresseurs de la page Carte depuis Pokémon Showdown, qu'il garde en cache dans `~/Library/Caches/TokenDex`.
+Aucune de tes données ne quitte ton Mac. Le serveur télécharge les sprites de Pokémon depuis GitHub (PokeAPI) et ceux des dresseurs de la page Carte depuis Pokémon Showdown, une seule fois : il les garde en cache dans `~/Library/Caches/TokenDex`.

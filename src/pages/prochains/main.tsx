@@ -10,6 +10,7 @@ import {useSave, useSettings} from '../../lib/hooks';
 import {LANG, LOCALE, tr} from '../../lib/i18n';
 import {storeSettings, type Rarity, type Settings, type State} from '../../lib/save';
 import {bwSprite} from '../../lib/sprites';
+import {nextEgg, weight, type Egg} from './draw';
 
 interface Line { id: number; name: string; cr: number; leg: boolean; rarity: Rarity }
 const LINES: Line[] = LINE_ROWS.map(([id, cr, leg]) => ({
@@ -18,7 +19,6 @@ const LINES: Line[] = LINE_ROWS.map(([id, cr, leg]) => ({
 }));
 const BY_ID = new Map(LINES.map(l => [l.id, l]));
 const RARITIES = Object.keys(RLABEL) as Rarity[];
-type Egg = 'none' | 'uncommon' | 'rare';
 const EGGS: Record<Egg, {label: string; ceil: number; price: number}> = {
   none: {label: tr('Œuf normal', 'Normal Egg'), ceil: 255, price: PRICE.egg},
   uncommon: {label: tr('Œuf Peu commun+', 'Uncommon+ Egg'), ceil: 120, price: PRICE.uncommonEgg},
@@ -33,7 +33,6 @@ function pct(p: number) {
   return v.toLocaleString(LOCALE, {minimumFractionDigits: d, maximumFractionDigits: d}) + tr(' %', '%');
 }
 const oneIn = (p: number) => p > 0 ? Math.round(1 / p).toLocaleString(LOCALE) : '–';
-const weight = (l: Line, collected: Set<number>) => collected.has(l.id) ? Math.max(1, Math.floor(l.cr / 2)) : Math.max(1, l.cr);
 function mulberry32(a: number) {
   return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a);
     t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
@@ -58,16 +57,6 @@ function fromState(st: State, settings: Settings): Sv {
 }
 const shinyRate = (sv: Sv) => sv.charm ? 1 / 48 : 1 / 64;
 
-function nextEgg(sv: Sv, egg: Egg) {
-  // The next egg is only drawn once the active Pokémon graduates, so its line already counts as graduated.
-  const collected = new Set(sv.collected);
-  if (sv.active) collected.add(sv.active);
-  const pool = LINES.filter(l => l.cr <= EGGS[egg].ceil);
-  const w = pool.map(l => weight(l, collected));
-  const total = w.reduce((a, b) => a + b, 0);
-  const p = new Map(pool.map((l, i) => [l.id, w[i] / total]));
-  return {pool, p, collected};
-}
 // Odds that none of n eggs triggers an event, e[i] being its odds when line i hatches. Each run follows a path
 // with no event so far and keeps the odds of that path, instead of counting hits: exact for one egg, and a 1 %
 // event no longer swings by a fifth between runs of the same slider value.
@@ -136,7 +125,7 @@ function Odds({sv}: {sv: Sv}) {
   const [sort, setSort] = useState('p');
   const [rar, setRar] = useState(() => new Set(RARITIES));
   const egg = picked ?? (isEgg(sv.eggTier) ? sv.eggTier : 'none');
-  const {pool, p, collected} = useMemo(() => nextEgg(sv, egg), [sv, egg]);
+  const {pool, p, collected} = useMemo(() => nextEgg(LINES, sv.collected, sv.active, egg, EGGS[egg].ceil), [sv, egg]);
   const h = useMemo(() => horizon(pool, collected, n, sv), [pool, collected, n, sv]);
   const s = shinyRate(sv), odds = sv.charm ? 48 : 64, act = sv.active ? BY_ID.get(sv.active) : undefined;
   const by = (r: Rarity) => pool.filter(l => l.rarity === r).reduce((a, l) => a + p.get(l.id)!, 0);
@@ -160,7 +149,7 @@ function Odds({sv}: {sv: Sv}) {
     <section class="panel" aria-label={tr('Type d\'œuf', 'Egg type')}>
       <div class="modes" role="radiogroup" aria-label={tr('Type d\'œuf', 'Egg type')}>
         {(Object.entries(EGGS) as [Egg, typeof EGGS.none][]).map(([k, e]) => (
-          <button type="button" class={`mode${k === egg ? ' on' : ''}`} role="radio" aria-checked={k === egg} onClick={() => setPicked(k)}>
+          <button key={k} type="button" class={`mode${k === egg ? ' on' : ''}`} role="radio" aria-checked={k === egg} onClick={() => setPicked(k)}>
             {e.label}<em>{`${k === 'none' ? tr('tirage libre', 'open draw') : tok(e.price * sv.shop)}${k === sv.eggTier ? tr(' · en cours', ' · current') : ''}`}</em>
           </button>
         ))}
@@ -169,8 +158,8 @@ function Odds({sv}: {sv: Sv}) {
     <section class="panel" aria-label={tr('Prochain œuf', 'Next egg')}>
       <div class="panel-head">
         <h2>{tr('Au prochain œuf', 'In the next egg')}</h2>
-        <p>{tr(`${pool.length} lignes dans le tirage${act ? `, ${act.name} compté comme gradué puisque l'œuf ne vient qu'après` : ''}. Le shiny est tiré à part : 1 chance sur ${odds}, quelle que soit la rareté.`,
-          `${pool.length} lines in the draw${act ? `, ${act.name} counted as graduated since the egg only comes after` : ''}. Shiny is drawn separately: 1 in ${odds}, whatever the rarity.`)}</p>
+        <p>{tr(`${pool.length} lignes dans le tirage${act ? egg === 'none' ? `, ${act.name} compté comme gradué puisque l'œuf ne vient qu'après` : `, acheter cet œuf relâche ${act.name} sans le graduer` : ''}. Le shiny est tiré à part : 1 chance sur ${odds}, quelle que soit la rareté.`,
+          `${pool.length} lines in the draw${act ? egg === 'none' ? `, ${act.name} counted as graduated since the egg only comes after` : `, buying this egg releases ${act.name} without graduating it` : ''}. Shiny is drawn separately: 1 in ${odds}, whatever the rarity.`)}</p>
       </div>
       <Tiles items={nextTiles} />
     </section>
@@ -223,7 +212,7 @@ function Odds({sv}: {sv: Sv}) {
             {rows.map(l => {
               const pr = p.get(l.id)!, done = collected.has(l.id);
               return (
-                <tr class={done ? 'done' : ''}>
+                <tr key={l.id} class={done ? 'done' : ''}>
                   <td><div class="poke">
                     <img loading="lazy" alt="" src={bwSprite(l.id)} /><span class="id">{`#${l.id}`}</span><span class="nm">{l.name}</span>
                     {shinySet.has(l.id) && <> <span class="shiny" title={tr('Shiny gradué', 'Graduated shiny')}>✦</span></>}

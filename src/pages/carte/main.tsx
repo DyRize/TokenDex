@@ -165,10 +165,10 @@ function Front({st, card}: {st: State; card: Card}) {
   const present = order.filter(n);
   return <>
     <div class="front">
-      <dl class="rows">{rows.map(([k, v]) => <div><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
+      <dl class="rows">{rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
       <div class="hero"><div class="medal"><img alt="" src={avatarURL(card.avatar)} /></div><b>{card.name || tr('Dresseur', 'Trainer')}</b></div>
     </div>
-    <div class="rbar">{present.map(r => <i style={`--c:var(--r-${r}); flex:${n(r)}`} title={RPLURAL[r]}></i>)}</div>
+    <div class="rbar">{present.map(r => <i key={r} style={`--c:var(--r-${r}); flex:${n(r)}`} title={RPLURAL[r]}></i>)}</div>
     <div class="foot"><span>{present.map(r => `${n(r)} ${(n(r) > 1 ? RPLURAL : RLABEL)[r]}`).join(' · ') || tr('Aucune graduation', 'No graduations')}</span><b>PokeTokenBar</b></div>
   </>;
 }
@@ -193,10 +193,10 @@ function Avatars({avatar, onPick}: {avatar: string; onPick: (slug: string) => vo
       aria-label={tr('Chercher un dresseur', 'Search for a trainer')} value={query} onInput={e => setQuery(e.currentTarget.value)} />
     <div class="avwrap">
       {!hits ? REGIONS.map(([region, roles]) => (
-        <div class="avg">
+        <div key={region} class="avg">
           <h3>{region}</h3>
           <div class="avroles">
-            {roles.map(([role, list]) => <div class="avr"><h4>{role}</h4><div class="avs">{list.map(button)}</div></div>)}
+            {roles.map(([role, list]) => <div key={role} class="avr"><h4>{role}</h4><div class="avs">{list.map(button)}</div></div>)}
           </div>
         </div>
       )) : hits.length ? <div class="avs">{hits.map(button)}</div> : <p class="avnone">{tr('Aucun dresseur trouvé.', 'No trainer found.')}</p>}
@@ -242,7 +242,7 @@ function Picks({cands, team, full, onToggle, onLead}: {cands: Cand[]; team: Cand
       {list.map(x => {
         const at = pos.get(x.id);
         return (
-          <div class={at ? 'pick on' : 'pick'}>
+          <div key={x.id} class={at ? 'pick on' : 'pick'}>
             <button type="button" class="pick-main" aria-pressed={!!at} title={`${x.name}${x.at ? tr(', capturé le ', ', caught on ') + fmtDate(x.at) : ''}`} onClick={() => onToggle(x.id)}>
               <img alt="" src={bwSprite(spriteID(x.sp, x.form), {shiny: x.shiny})} /><span>{x.name}{x.shiny && <> <i class="sh">✦</i></>}</span><em>{at || ''}</em>
             </button>
@@ -331,9 +331,9 @@ function TrainerCard({st}: {st: State}) {
               <div class="team">
                 {Array.from({length: 6}, (_, i) => {
                   const x = team[i];
-                  if (!x) return <div class="slot empty">{tr('Libre', 'Empty')}</div>;
+                  if (!x) return <div key={i} class="slot empty">{tr('Libre', 'Empty')}</div>;
                   return (
-                    <div class="slot" style={`--c:var(--r-${x.rarity})`}>
+                    <div key={i} class="slot" style={`--c:var(--r-${x.rarity})`}>
                       {i === 0 && <span class="lead">{tr('Chef', 'Lead')}</span>}{x.shiny && <span class="spark" aria-hidden="true">✦</span>}
                       <img alt="" src={bwSprite(spriteID(x.sp, x.form), {shiny: x.shiny, animated: true})} /><b>{x.name}</b><small>{RLABEL[x.rarity]}</small>
                     </div>
@@ -374,10 +374,10 @@ function TrainerCard({st}: {st: State}) {
       <div class="panel-head"><h2>{tr('Contour', 'Frame')}</h2><p>{frame[1]}</p></div>
       <div class="frames">
         {FRAME_GROUPS.map(([title, list]) => (
-          <div class="frg">
+          <div key={title} class="frg">
             <h4>{title}</h4>
             <div class="frs">
-              {list.map(([k, label, bg]) => <button type="button" class="fr" aria-label={tr(`Contour ${label}`, `${label} frame`)} title={label} style={`--sw:${bg}`}
+              {list.map(([k, label, bg]) => <button key={k} type="button" class="fr" aria-label={tr(`Contour ${label}`, `${label} frame`)} title={label} style={`--sw:${bg}`}
                 aria-pressed={k === frame[0]} onClick={() => update({frame: k})}></button>)}
             </div>
           </div>

@@ -8,7 +8,7 @@ import {useSave, useServed, useSettings} from '../../lib/hooks';
 import {tr} from '../../lib/i18n';
 import type {Settings, State} from '../../lib/save';
 import {EGG_SPRITE, bwSprite, itemSprite, spriteID, withForm} from '../../lib/sprites';
-import {hourProfile, type Hours} from '../../lib/usage';
+import {hourProfile, uncounted, type Usage} from '../../lib/usage';
 
 type Article = keyof typeof PRICE;
 const CANDY = itemSprite('rare-candy'), CHARM = itemSprite('shiny-charm');
@@ -23,11 +23,12 @@ const ARTICLES: [Article, string, string, string][] = [
 const nCandies = (n: number) => tr(`${n} bonbon${n > 1 ? 's' : ''}`, `${n} Rare Cand${n > 1 ? 'ies' : 'y'}`);
 type Act = [cls: 'go' | 'wait' | 'info', img: string, h: string, p: ComponentChildren];
 
-function Advisor({st, settings, perDay}: {st: State; settings: Settings; perDay: number | null}) {
+function Advisor({st, settings, perDay, missing}: {st: State; settings: Settings; perDay: number | null; missing: string[]}) {
   const a = st.active, P = Object.fromEntries(Object.entries(PRICE).map(([k, x]) => [k, scaled(x, settings.s)])) as Record<Article, number>;
   const wallet = Math.max(0, st.usedSinceInstall - st.spentTokens), candies = st.inventory.rareCandy || 0;
   const charm = (st.inventory.shinyCharm || 0) > 0, collected = new Set(st.collectedFinals);
-  const known = new Set(st.dex.flatMap(d => d.chain));
+  const known = new Set(st.dex.flatMap(d => d.chain)), knownShiny = new Set(st.dex.filter(d => d.isShiny).flatMap(d => d.chain));
+  const newShiny = a && a.isShiny ? [...new Set(a.planned)].filter(id => id <= 649 && !knownShiny.has(id)).length : 0;
   const complete = a ? (FINALS[a.baseID] || [a.baseID]).every(f => collected.has(`${a.baseID}:${f}`)) : false;
   const id = a ? a.path[a.stage] || a.baseID : 0, name = a ? withForm(NAMES[id - 1], id, a.unownForm) : '';
   const wait = (n: number) => { if (!perDay) return ''; const h = n / perDay * 24; return ` (≈ ${h < 48 ? Math.max(1, Math.round(h)) + ' h' : Math.round(h / 24) + tr(' jours', ' days')} ${tr('à ton rythme', 'at your pace')})`; };
@@ -35,6 +36,11 @@ function Advisor({st, settings, perDay}: {st: State; settings: Settings; perDay:
   let left = wallet, buyEgg = false;
   if (!a) {
     acts.push(['wait', EGG_SPRITE, tr('Laisse éclore l\'œuf', 'Let the egg hatch'), tr('Pas de Pokémon actif : rien à relâcher, et les bonbons ne servent qu\'à un Pokémon qui grandit.', 'No active Pokémon: nothing to release, and Rare Candies only help a Pokémon that is growing.')]);
+  } else if (complete && newShiny) {
+    const s = newShiny > 1 ? 's' : '';
+    acts.push(['info', bwSprite(spriteID(id, a.unownForm), {shiny: true}), tr(`Fais grandir ${name}`, `Grow ${name}`),
+      tr(<>Sa ligne est complète, mais c'est un shiny qui t'apporte <b>{`${newShiny} espèce${s} shiny nouvelle${s}`}</b> : ne le relâche pas.</>,
+        <>Its line is complete, but it is a shiny that brings you <b>{`${newShiny} new shiny species`}</b>: don't release it.</>)]);
   } else if (complete) {
     if (wallet >= P.rareEgg) {
       buyEgg = true; left -= P.rareEgg;
@@ -83,17 +89,19 @@ function Advisor({st, settings, perDay}: {st: State; settings: Settings; perDay:
       <Tiles items={[
         [tr('Solde', 'Balance'), tok(wallet), tr(`${tok(st.spentTokens)} déjà dépensés`, `${tok(st.spentTokens)} already spent`)],
         [tr('Bonbons', 'Rare Candies'), String(candies), tr(`valent ${tok(candies * CANDY_XP)} d'XP`, `worth ${tok(candies * CANDY_XP)} XP`)],
-        [tr('En cours', 'Growing'), a ? name : tr('Œuf', 'Egg'), a ? (complete ? tr('ligne complète : doublon', 'complete line: duplicate') : tr('ligne à compléter', 'line to complete')) : tr('entre deux Pokémon', 'between two Pokémon')],
+        [tr('En cours', 'Growing'), a ? name : tr('Œuf', 'Egg'), a ? (complete ? newShiny ? tr('ligne complète, shiny à garder', 'complete line, a shiny to keep') : tr('ligne complète : doublon', 'complete line: duplicate') : tr('ligne à compléter', 'line to complete')) : tr('entre deux Pokémon', 'between two Pokémon')],
         [tr('Réserve Rare+', 'Rare+ reserve'), tok(P.rareEgg), wallet >= P.rareEgg ? tr('atteinte', 'reached') : tr(`il manque ${tok(P.rareEgg - wallet)}`, `${tok(P.rareEgg - wallet)} to go`)],
       ]} />
       <p class="hint">{settings.live
         ? tr(`Réglages lus dans l'app : croissance ${settings.g} %, boutique ${settings.s} %.`, `Settings read from the app: growth ${settings.g}%, shop ${settings.s}%.`)
         : tr(`Réglages : croissance ${settings.g} %, boutique ${settings.s} % (ceux saisis sur Prochains, sans serveur local).`, `Settings: growth ${settings.g}%, shop ${settings.s}% (the ones typed on Next, no local server).`)}</p>
+      {perDay && missing.length > 0 && <p class="hint">{tr(`Attentes estimées sans les tokens de ${missing.join(', ')}, que le serveur local ne sait pas lire : l'app les compte, donc ton solde devrait monter plus vite qu'annoncé.`,
+        `Waits estimated without the ${missing.join(', ')} tokens, which the local server cannot read: the app counts them, so your balance should grow faster than shown.`)}</p>}
     </section>
     <section class="panel" aria-label={tr('À faire maintenant', 'Do this now')}>
       <div class="panel-head"><h2>{tr('À faire maintenant', 'Do this now')}</h2><p>{tr('Dans l\'ordre.', 'In order.')}</p></div>
       <ol class="actions">
-        {acts.map(([cls, img, h, p]) => <li class={`act ${cls}`}><img alt="" src={img} /><div><h3>{h}</h3><p>{p}</p></div></li>)}
+        {acts.map(([cls, img, h, p]) => <li key={h} class={`act ${cls}`}><img alt="" src={img} /><div><h3>{h}</h3><p>{p}</p></div></li>)}
       </ol>
     </section>
     <section class="panel" aria-label={tr('Prix', 'Prices')}>
@@ -105,7 +113,7 @@ function Advisor({st, settings, perDay}: {st: State; settings: Settings; perDay:
             {ARTICLES.map(([k, label, img, what]) => {
               const p = P[k];
               return (
-                <tr>
+                <tr key={k}>
                   <td><span class="it"><img alt="" src={img} />{label}</span><span class="hint">{what}</span></td>
                   <td class="num">{tok(p)}</td>
                   <td class="num">{k === 'charm' && charm ? <span class="ok">{tr('déjà à toi', 'already yours')}</span>
@@ -137,14 +145,14 @@ function Advisor({st, settings, perDay}: {st: State; settings: Settings; perDay:
 function App() {
   const {save} = useSave();
   const [settings] = useSettings();
-  const usage = useServed<{hours: Hours}>('usage.json');
+  const usage = useServed<Usage>('usage.json');
   const perDay = usage && (hourProfile(usage.hours, new Date()).reduce((x, y) => x + y, 0) || null);
   return (
     <div class="wrap">
       <Header eyebrow={saveEyebrow(save)} title={tr('Conseiller boutique', 'Shop advisor')} save={save} lede={tr(
         <>Quoi acheter maintenant, et sur qui utiliser tes bonbons, d'après ton solde, ton Pokémon en cours et tes réglages. La règle suivie est la stratégie la plus rapide du <a href="chrono-pokedex.html">Chrono</a> pour finir le Pokédex.</>,
         <>What to buy now, and which Pokémon gets your Rare Candies, based on your balance, your growing Pokémon and your settings. The rule it follows is the fastest strategy from <a href="chrono-pokedex.html">Chrono</a> to finish the Pokédex.</>)} />
-      {save ? <Advisor st={save.st} settings={settings} perDay={perDay} /> : <section class="panel"><NoSave /></section>}
+      {save ? <Advisor st={save.st} settings={settings} perDay={perDay} missing={uncounted(usage)} /> : <section class="panel"><NoSave /></section>}
       <footer>
         {tr(<p>Prix repris de l'app (<code>RareCandy</code>, <code>ShinyCharm</code>, <code>FreshEgg</code>) multipliés par ton curseur de boutique. Solde = tokens depuis l'installation moins tes achats, comme dans l'app. Acheter un œuf demande un Pokémon actif, qui est relâché.</p>,
           <p>Prices taken from the app (<code>RareCandy</code>, <code>ShinyCharm</code>, <code>FreshEgg</code>) times your shop slider. Balance = tokens since install minus your purchases, like in the app. Buying an egg needs an active Pokémon, which gets released.</p>)}

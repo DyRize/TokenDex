@@ -3,6 +3,8 @@
 .ptb-nav .in{max-width:1000px; margin:0 auto; padding:8px 16px; display:flex; align-items:center; gap:16px;}
 .ptb-nav .brand{display:inline-flex; align-items:center; gap:8px; font:800 15px var(--f-round); color:var(--ink); text-decoration:none; white-space:nowrap;}
 .ptb-nav .brand::before{content:""; width:18px; height:18px; background:var(--brand); -webkit-mask:var(--ball) center/contain no-repeat; mask:var(--ball) center/contain no-repeat;}
+.ptb-nav .stage{margin-left:-8px; font:700 10px var(--f-ui); letter-spacing:.08em; text-transform:uppercase; color:var(--brand);
+  border:1px solid color-mix(in srgb, var(--brand) 40%, transparent); border-radius:6px; padding:1px 6px; cursor:default;}
 .ptb-nav .tabs{display:flex; gap:2px; background:var(--surface-2); border:1px solid var(--line); border-radius:11px; padding:3px; margin-left:auto; overflow-x:auto; scrollbar-width:none;}
 .ptb-nav .tabs a{font:600 13.5px var(--f-ui); color:var(--ink-2); text-decoration:none; padding:5px 14px; border-radius:8px; white-space:nowrap;}
 .ptb-nav .tabs a:hover{color:var(--ink);}
@@ -11,4 +13,8 @@
 .ptb-nav .lang{flex:none; font:700 12px var(--f-ui); color:var(--ink-2); background:none; border:1px solid var(--line); border-radius:8px; padding:5px 8px; cursor:pointer;}
 .ptb-nav .lang:hover{color:var(--ink);}
 .ptb-nav .lang:focus-visible{outline:2px solid var(--s3); outline-offset:1px;}
-@media (max-width:560px){ .ptb-nav .brand span{display:none} .ptb-nav .tabs{flex:1} .ptb-nav .tabs a{padding:5px 10px;} }
+@media (max-width:560px){ .ptb-nav .brand span,.ptb-nav .stage{display:none} .ptb-nav .tabs{flex:1} .ptb-nav .tabs a{padding:5px 10px;} }
+/* Moving between pages, the menu must not move: the gutter keeps it from shifting sideways when one page scrolls
+   and the next does not (scroll bars always shown, as with a mouse). No crossfade: the browser keeps the old page
+   until the new one is drawn (the page script blocks rendering, see vite.config.ts), then swaps them in one frame. */
+html{scrollbar-gutter:stable;}
