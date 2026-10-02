@@ -2,10 +2,11 @@ import type {ComponentChildren} from 'preact';
 import {render} from 'preact';
 import {useErrorBoundary} from 'preact/hooks';
 import {fmtSaveDate} from '../lib/format';
-import {tr} from '../lib/i18n';
+import {feedbackURL} from '../lib/feedback';
+import {LANG, tr} from '../lib/i18n';
 import type {Save} from '../lib/save';
 import {EGG_SPRITE, bwSprite, spriteID} from '../lib/sprites';
-import {Nav} from './Nav';
+import {Nav, currentPage} from './Nav';
 import '@fontsource/nunito/latin-700.css';
 import '@fontsource/nunito/latin-800.css';
 
@@ -13,9 +14,13 @@ import '@fontsource/nunito/latin-800.css';
 function Guard({children}: {children: ComponentChildren}) {
   const [error] = useErrorBoundary();
   if (!error) return children;
+  const report = feedbackURL(currentPage(), LANG, true);
   return (
     <div class="wrap"><section class="panel">
-      <p>{tr('Cette page a planté. Recharge-la ; si ça recommence, fais une capture de ce message pour le signaler :', 'This page crashed. Reload it; if it happens again, take a screenshot of this message to report it:')}</p>
+      <p>{tr(
+        <>Cette page a planté. Recharge-la ; si ça recommence, copie ce message et <a href={report} target="_blank" rel="noopener">signale-le</a> :</>,
+        <>This page crashed. Reload it; if it happens again, copy this message and <a href={report} target="_blank" rel="noopener">report it</a>:</>,
+      )}</p>
       <pre style="white-space:pre-wrap;font-size:12px">{String(error && (error as Error).stack || error)}</pre>
     </section></div>
   );

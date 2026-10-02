@@ -1,5 +1,6 @@
 import {version} from '../../package.json';
-import {setLang, tr} from '../lib/i18n';
+import {feedbackURL} from '../lib/feedback';
+import {LANG, setLang, tr} from '../lib/i18n';
 import './nav.css';
 
 const PAGES = [
@@ -14,9 +15,11 @@ const PAGES = [
 ];
 // "alpha" in 0.1.0-alpha.1, nothing once released.
 const STAGE = version.split('-')[1]?.split('.')[0];
+export const currentPage = () => decodeURIComponent(location.pathname.split('/').pop() || '') || 'index.html';
 
 export function Nav() {
-  const here = decodeURIComponent(location.pathname.split('/').pop() || '') || 'index.html';
+  const here = currentPage();
+  const feedback = tr('Signaler un bug ou proposer une idée', 'Report a bug or suggest an idea');
   return (
     <nav class="ptb-nav" aria-label="TokenDex">
       <div class="in">
@@ -28,6 +31,7 @@ export function Nav() {
         <button type="button" class="lang" lang={tr('en', 'fr')} title={tr('English', 'Français')} onClick={() => setLang(tr('en', 'fr'))}>
           {tr('EN', 'FR')}
         </button>
+        <a class="feedback" href={feedbackURL(here, LANG)} target="_blank" rel="noopener" title={feedback} aria-label={feedback} />
       </div>
     </nav>
   );
