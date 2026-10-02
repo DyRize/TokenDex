@@ -19,15 +19,18 @@ L'interface existe en français et en anglais : bouton FR/EN dans le menu, sinon
 
 ## Lancer le serveur
 
-Il faut Node (`brew install node`) : les pages sont construites à partir des sources au premier lancement, puis à chaque mise à jour.
+Il faut Node (`brew install node`) pour construire les pages. Dans le dossier :
 
-Double-clique sur `Lancer.command` : une fenêtre Terminal installe les dépendances et construit les pages si besoin, démarre le serveur et ouvre le Pokédex dans ton navigateur. Ferme la fenêtre (ou `Ctrl+C`) pour l'arrêter. Rien ne démarre tout seul, et ce qui s'installe reste dans le dossier (`node_modules`, `dist`).
+```sh
+npm install && npm run build
+python3 serve.py
+```
+
+puis http://127.0.0.1:8649. `Ctrl+C` arrête le serveur. Rien ne démarre tout seul, et ce qui s'installe reste dans le dossier (`node_modules`, `dist`). Après une mise à jour, relance `npm install && npm run build`.
 
 Tant qu'il tourne, il relit la sauvegarde de l'app à chaque ouverture de page : pas d'export à faire, tout est à jour quand tu recharges.
 
-Au premier double-clic, macOS bloque le fichier parce qu'il vient d'internet. Va dans Réglages Système > Confidentialité et sécurité, clique sur « Ouvrir quand même » en bas, puis relance-le. Si macOS propose d'installer les outils de développement, accepte : c'est ce qui fournit Python.
-
-Depuis un terminal : `npm install && npm run build` dans le dossier, puis `python3 serve.py`, et http://127.0.0.1:8649.
+Si macOS propose d'installer les outils de développement, accepte : c'est ce qui fournit Python.
 
 ## Développement
 

@@ -19,15 +19,18 @@ The interface is in English and French: FR/EN button in the menu, otherwise your
 
 ## Run the server
 
-You need Node (`brew install node`): the pages are built from source on first launch, then after each update.
+You need Node (`brew install node`) to build the pages. In the folder:
 
-Double-click `Lancer.command`: a Terminal window installs the dependencies and builds the pages if needed, starts the server and opens the Pokédex in your browser. Close the window (or `Ctrl+C`) to stop it. Nothing starts on its own, and everything it installs stays in the folder (`node_modules`, `dist`).
+```sh
+npm install && npm run build
+python3 serve.py
+```
+
+then http://127.0.0.1:8649. `Ctrl+C` stops the server. Nothing starts on its own, and everything it installs stays in the folder (`node_modules`, `dist`). After an update, run `npm install && npm run build` again.
 
 While it runs, it reads the app's save again every time a page opens: no export needed, reload and you're up to date.
 
-The first time you double-click it, macOS blocks the file because it came from the internet. Go to System Settings > Privacy & Security, click "Open Anyway" at the bottom, then launch it again. If macOS offers to install the developer tools, accept: that's what provides Python.
-
-From a terminal: `npm install && npm run build` in the folder, then `python3 serve.py`, and http://127.0.0.1:8649.
+If macOS offers to install the developer tools, accept: that's what provides Python.
 
 ## Development
 
