@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Bug in the PokeTokenBar app itself
+    url: https://github.com/chattymin/PokeTokenBar/issues
+    about: TokenDex only reads the app's save. Report bugs of the menu bar app there.

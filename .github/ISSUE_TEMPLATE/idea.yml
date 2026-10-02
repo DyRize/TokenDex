@@ -1,0 +1,27 @@
+name: Idea
+description: Something TokenDex could show or do.
+labels: [enhancement, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Any language is fine.
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like?
+      description: What it would let you do, and on which page.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: TokenDex version
+  - type: input
+    id: page
+    attributes:
+      label: Page
+  - type: input
+    id: lang
+    attributes:
+      label: Interface language

@@ -1,0 +1,41 @@
+name: Bug report
+description: Something in TokenDex is wrong, broken or crashed.
+labels: [bug, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Any language is fine. This issue is public: never paste or attach your save file.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, what you saw.
+    validations:
+      required: true
+  - type: textarea
+    id: error
+    attributes:
+      label: Error message
+      description: If a page crashed, paste the message it shows.
+      render: text
+  - type: input
+    id: app-version
+    attributes:
+      label: PokeTokenBar version
+  - type: input
+    id: browser
+    attributes:
+      label: Browser
+  - type: input
+    id: version
+    attributes:
+      label: TokenDex version
+  - type: input
+    id: page
+    attributes:
+      label: Page
+  - type: input
+    id: lang
+    attributes:
+      label: Interface language
