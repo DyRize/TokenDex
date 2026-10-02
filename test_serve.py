@@ -2,6 +2,7 @@
 import importlib
 import json
 import os
+import re
 import sqlite3
 import tempfile
 import time
@@ -222,6 +223,15 @@ class UsageTest(unittest.TestCase):
         with open(serve.SAVE, 'w') as f:
             json.dump({'lastDate': time.strftime('%Y-%m-%d'), 'claimedTodayTokensByProvider': {'claude_code': 10, 'windsurf': 5, 'codex': 0}}, f)
         self.assertEqual(self.usage()['sources'], [{'id': 'claude_code', 'counted': True}, {'id': 'windsurf', 'counted': False}])
+
+    def test_both_readmes_name_every_provider_read(self):
+        names = {'claude_code': 'Claude Code', 'codex': 'Codex', 'gemini': 'Gemini', 'grok': 'Grok', 'pi': 'Pi', 'omp': 'OMP', 'antigravity': 'Antigravity',
+                 'opencode': 'OpenCode', 'hermes': 'Hermes', 'cursor': 'Cursor', 'copilot': 'Copilot', 'kiro': 'Kiro', 'aside': 'Aside'}
+        providers = sorted({p for _, read, _ in serve.usage_sources() for p in read})
+        for readme in ('README.md', 'README.fr.md'):
+            with open(os.path.join(serve.HERE, readme)) as f:
+                text = f.read()
+            self.assertEqual([p for p in providers if not re.search(rf'\b{re.escape(names.get(p, p))}\b', text)], [], readme)
 
 
 if __name__ == '__main__':
