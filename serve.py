@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Serves TokenDex on http://127.0.0.1:8649: the pages built in dist/ by `npm run build`.
+`--open` also opens them in the browser, or only that when TokenDex is already running.
 
 Live data, read from the app on every request:
   /save.json      the app's companion-state.json
@@ -14,6 +15,7 @@ Trainer avatars, relayed from Pokémon Showdown and cached on disk so pages can 
 Pokémon and item sprites, relayed from PokeAPI's GitHub and kept on disk: /sprites/<path as on GitHub>
 """
 import calendar
+import errno
 import glob
 import json
 import os
@@ -27,6 +29,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import webbrowser
 import zlib
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
@@ -49,6 +52,7 @@ ISO_TIME = re.compile(r'(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)(\.\d+)?(Z|[+-
 CACHED = ('claude_code', 'codex', 'gemini', 'grok', 'pi', 'omp')
 CODEX_VECTOR = ('input', 'cachedInput', 'cacheWriteInput', 'output', 'reasoningOutput', 'total')
 PORT = 8649
+URL = f'http://127.0.0.1:{PORT}'
 # A site can point its own domain at 127.0.0.1 (DNS rebinding) and read these files as same-origin.
 # Its requests still carry that domain in Host, so only the local names are served.
 HOSTS = {f'127.0.0.1:{PORT}', f'localhost:{PORT}'}
@@ -923,11 +927,26 @@ class Server(ThreadingHTTPServer):
             super().handle_error(request, client_address)
 
 
-if __name__ == '__main__':
+def main(argv):
     if not os.path.isfile(os.path.join(DIST, 'index.html')):
         sys.exit('dist/ is missing: run `npm install && npm run build` first.')
+    try:
+        server = Server(('127.0.0.1', PORT), partial(Handler, directory=DIST))
+    except OSError as e:
+        if e.errno != errno.EADDRINUSE:
+            raise
+        if '--open' in argv:
+            webbrowser.open(URL)
+        sys.exit(f'Port {PORT} is already in use, most likely by TokenDex: {URL}')
+    print(f'TokenDex on {URL}', flush=True)
+    if '--open' in argv:
+        webbrowser.open(URL)
     threading.Thread(target=prefetch_sprites, daemon=True).start()
     try:
-        Server(('127.0.0.1', PORT), partial(Handler, directory=DIST)).serve_forever()
+        server.serve_forever()
     except KeyboardInterrupt:
         pass
+
+
+if __name__ == '__main__':
+    main(sys.argv[1:])
