@@ -19,22 +19,40 @@ L'interface existe en français et en anglais : bouton FR/EN dans le menu, sinon
 
 ## Lancer le serveur
 
-Il faut Node (`brew install node`) pour construire les pages. Dans le dossier :
+Avec [Homebrew](https://brew.sh), déjà là si tu as installé PokeTokenBar avec :
 
 ```sh
-npm install && npm run build
-python3 serve.py
+brew install DyRize/tap/tokendex
+tokendex
 ```
 
-puis http://127.0.0.1:8649. `Ctrl+C` arrête le serveur. Rien ne démarre tout seul, et ce qui s'installe reste dans le dossier (`node_modules`, `dist`). Après une mise à jour, relance `npm install && npm run build`.
+`tokendex` sert les pages sur http://127.0.0.1:8649 et les ouvre dans ton navigateur. `Ctrl+C` arrête le serveur. Rien ne démarre tout seul, pas même à l'ouverture de session.
+
+Pour le garder en fond sans terminal, jusqu'à ce que tu l'arrêtes ou que tu redémarres le Mac :
+
+```sh
+brew services run tokendex    # tokendex ne fait alors plus qu'ouvrir la page
+brew services stop tokendex
+```
+
+`brew upgrade tokendex` installe une nouvelle version ; s'il tourne en fond, fais `stop` puis `run` à nouveau.
 
 Tant qu'il tourne, il relit la sauvegarde de l'app à chaque ouverture de page : pas d'export à faire, tout est à jour quand tu recharges.
 
-Si macOS propose d'installer les outils de développement, accepte : c'est ce qui fournit Python.
+Un bug, une idée ? La bulle dans le menu ouvre [une issue](https://github.com/DyRize/TokenDex/issues/new/choose), dans la langue que tu veux.
 
 ## Développement
 
 Les pages sont en Preact + TypeScript, construites par Vite : une entrée HTML par page à la racine, le code dans `src/pages/<page>/`, le reste partagé dans `src/lib` et `src/components`.
+
+Pour le lancer depuis les sources, il faut Node (`brew install node`). Dans le dossier :
+
+```sh
+npm install && npm run build
+python3 serve.py --open
+```
+
+Après un `git pull`, relance `npm install && npm run build`. Si macOS propose d'installer les outils de développement, accepte : c'est ce qui fournit Python.
 
 `npm run dev` sert les pages sur http://127.0.0.1:5173 et les recharge à chaque modification. Laisse `serve.py` tourner à côté : c'est lui qui fournit la sauvegarde et l'historique, le serveur de dev les lui demande. `npm run typecheck` vérifie les types, `npm run build` refait `dist/`.
 

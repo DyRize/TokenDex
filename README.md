@@ -19,22 +19,40 @@ The interface is in English and French: FR/EN button in the menu, otherwise your
 
 ## Run the server
 
-You need Node (`brew install node`) to build the pages. In the folder:
+With [Homebrew](https://brew.sh), already there if you installed PokeTokenBar with it:
 
 ```sh
-npm install && npm run build
-python3 serve.py
+brew install DyRize/tap/tokendex
+tokendex
 ```
 
-then http://127.0.0.1:8649. `Ctrl+C` stops the server. Nothing starts on its own, and everything it installs stays in the folder (`node_modules`, `dist`). After an update, run `npm install && npm run build` again.
+`tokendex` serves the pages on http://127.0.0.1:8649 and opens them in your browser. `Ctrl+C` stops the server. Nothing starts on its own, not even at login.
+
+To keep it running in the background without a terminal, until you stop it or restart your Mac:
+
+```sh
+brew services run tokendex    # tokendex then only opens the page
+brew services stop tokendex
+```
+
+`brew upgrade tokendex` installs a new version; if it runs in the background, `stop` it and `run` it again.
 
 While it runs, it reads the app's save again every time a page opens: no export needed, reload and you're up to date.
 
-If macOS offers to install the developer tools, accept: that's what provides Python.
+A bug, an idea? The speech bubble in the menu opens [an issue](https://github.com/DyRize/TokenDex/issues/new/choose), in any language.
 
 ## Development
 
 The pages are Preact + TypeScript, built by Vite: one HTML entry per page at the root, each page's code in `src/pages/<page>/`, the shared parts in `src/lib` and `src/components`.
+
+To run it from the sources, you need Node (`brew install node`). In the folder:
+
+```sh
+npm install && npm run build
+python3 serve.py --open
+```
+
+After a `git pull`, run `npm install && npm run build` again. If macOS offers to install the developer tools, accept: that's what provides Python.
 
 `npm run dev` serves the pages on http://127.0.0.1:5173 and reloads them on every change. Keep `serve.py` running alongside: it provides the save and the history, and the dev server asks it for them. `npm run typecheck` checks the types, `npm run build` rebuilds `dist/`.
 
