@@ -34,10 +34,18 @@ jobs:
           cp -R serve.py dist LICENSE "tokendex-$VERSION/"
           tar --no-mac-metadata --no-xattrs -czf "tokendex-$VERSION.tar.gz" "tokendex-$VERSION"
           echo "SHA256=$(shasum -a 256 "tokendex-$VERSION.tar.gz" | cut -d ' ' -f 1)" >> "$GITHUB_ENV"
+      - name: Run the archive as the Homebrew service does
+        run: |
+          tar -xzf "tokendex-$VERSION.tar.gz" -C "$RUNNER_TEMP"
+          "$RUNNER_TEMP/tokendex-$VERSION/serve.py" &
+          sleep 2
+          curl -fsS http://127.0.0.1:8649/ | grep TokenDex > /dev/null
+          kill $!
       - name: Publish the release, as a prerelease while the version has a suffix
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          prerelease=$([[ "$VERSION" == *-* ]] && echo --prerelease || true)
-          gh release create "$GITHUB_REF_NAME" "tokendex-$VERSION.tar.gz" --verify-tag $prerelease \
+          flags=()
+          if [[ "$VERSION" == *-* ]]; then flags+=(--prerelease); fi
+          gh release create "$GITHUB_REF_NAME" "tokendex-$VERSION.tar.gz" --verify-tag "${flags[@]}" \
             --title "TokenDex $VERSION" --generate-notes --notes "SHA-256 of tokendex-$VERSION.tar.gz: \`$SHA256\`"
