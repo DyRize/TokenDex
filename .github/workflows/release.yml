@@ -1,0 +1,43 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Check the tag against package.json
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match version $version in package.json"
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+      - run: npm test
+      - name: Pack serve.py, dist and LICENSE
+        run: |
+          mkdir "tokendex-$VERSION"
+          cp -R serve.py dist LICENSE "tokendex-$VERSION/"
+          tar --no-mac-metadata --no-xattrs -czf "tokendex-$VERSION.tar.gz" "tokendex-$VERSION"
+          echo "SHA256=$(shasum -a 256 "tokendex-$VERSION.tar.gz" | cut -d ' ' -f 1)" >> "$GITHUB_ENV"
+      - name: Publish the release, as a prerelease while the version has a suffix
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          prerelease=$([[ "$VERSION" == *-* ]] && echo --prerelease || true)
+          gh release create "$GITHUB_REF_NAME" "tokendex-$VERSION.tar.gz" --verify-tag $prerelease \
+            --title "TokenDex $VERSION" --generate-notes --notes "SHA-256 of tokendex-$VERSION.tar.gz: \`$SHA256\`"
