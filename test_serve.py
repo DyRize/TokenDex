@@ -1,8 +1,10 @@
 """usage.json against synthetic stores shaped like the ones PokeTokenBar v2.5.5 reads. Run: python3 -m unittest test_serve"""
 import importlib
+import io
 import json
 import os
 import re
+import socket
 import sqlite3
 import tempfile
 import time
@@ -232,6 +234,57 @@ class UsageTest(unittest.TestCase):
             with open(os.path.join(serve.HERE, readme)) as f:
                 text = f.read()
             self.assertEqual([p for p in providers if not re.search(rf'\b{re.escape(names.get(p, p))}\b', text)], [], readme)
+
+
+class CommandTest(unittest.TestCase):
+    def setUp(self):
+        importlib.reload(serve)
+        dist = tempfile.TemporaryDirectory()
+        self.addCleanup(dist.cleanup)
+        open(os.path.join(dist.name, 'index.html'), 'w').close()
+        serve.DIST = dist.name
+        serve.prefetch_sprites = lambda: None
+        self.calls = []
+        patcher = mock.patch('webbrowser.open', side_effect=lambda url: self.calls.append(('open', url)))
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def run_main(self, *argv):
+        calls = self.calls
+
+        class Server:
+            def __init__(self, address, handler):
+                calls.append(('listen', address))
+
+            def serve_forever(self):
+                calls.append(('serve',))
+                raise KeyboardInterrupt
+
+        serve.Server = Server
+        with mock.patch('sys.stdout', new=io.StringIO()) as out:
+            serve.main(list(argv))
+        return out.getvalue()
+
+    def test_open_waits_for_the_port_then_opens_the_browser(self):
+        out = self.run_main('--open')
+        self.assertEqual(out, 'TokenDex on http://127.0.0.1:8649\n')
+        self.assertEqual(self.calls, [('listen', ('127.0.0.1', 8649)), ('open', 'http://127.0.0.1:8649'), ('serve',)])
+
+    def test_without_open_it_only_serves(self):
+        self.run_main()
+        self.assertEqual(self.calls, [('listen', ('127.0.0.1', 8649)), ('serve',)])
+
+    def test_a_busy_port_opens_the_browser_and_says_so_instead_of_a_traceback(self):
+        with socket.socket() as taken:
+            try:
+                taken.bind(('127.0.0.1', serve.PORT))
+                taken.listen()
+            except OSError:
+                pass  # already held, by a TokenDex running on this machine
+            with self.assertRaises(SystemExit) as exit:
+                serve.main(['--open'])
+        self.assertIn('already in use', exit.exception.code)
+        self.assertEqual(self.calls, [('open', 'http://127.0.0.1:8649')])
 
 
 if __name__ == '__main__':
