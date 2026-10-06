@@ -9,6 +9,7 @@ import {LOCALE, tr} from '../../lib/i18n';
 import type {DexEntry} from '../../lib/save';
 import {bwSprite, spriteID, withForm} from '../../lib/sprites';
 import {hourKey, uncounted, type Hours, type Usage} from '../../lib/usage';
+import {captures, duplicatedSpecies, type Capture} from './captures';
 
 const dayKey = (t: number) => hourKey(new Date(t)).slice(0, 10);
 const fmtDur = (ms: number) => {
@@ -20,31 +21,7 @@ const fmtDur = (ms: number) => {
 const fmtDayLong = (t: number) => new Date(t).toLocaleDateString(LOCALE, {weekday: 'long', day: 'numeric', month: 'long'});
 const fmtDayShort = (t: number) => new Date(t).toLocaleDateString(LOCALE, {day: 'numeric', month: 'short'});
 const noon = (k: string) => Date.parse(k + 'T12:00');
-
-// Tokens burnt between two instants, spreading each hour's total evenly over the hour.
-function tokensBetween(hours: Hours, t0: number, t1: number) {
-  let sum = 0;
-  const h = new Date(t0); h.setMinutes(0, 0, 0);
-  for (; h.getTime() < t1; h.setHours(h.getHours() + 1)) {
-    const a = Math.max(t0, h.getTime()), b = Math.min(t1, h.getTime() + 3600e3);
-    if (b > a) sum += (hours[hourKey(h)] || 0) * (b - a) / 3600e3;
-  }
-  return sum;
-}
-
-interface Capture { d: DexEntry; finalId: number; name: string; at: number; dupe: boolean; dur: number | null; tokens: number | null }
-function captures(dex: DexEntry[], hours: Hours | null): Capture[] {
-  const list = dex.filter((d): d is DexEntry & {caughtAt: number} => !!d.caughtAt && !d.releasedAt).sort((a, b) => a.caughtAt - b.caughtAt);
-  const seen = new Set<number | string>();
-  return list.map((d, i) => {
-    const prev = i ? list[i - 1].caughtAt : null, finalId = d.chain.filter(id => id <= 649).pop() || d.finalID;
-    const c = {d, finalId, name: withForm(NAMES[finalId - 1], finalId, d.unownForm), at: d.caughtAt,
-      dupe: d.chain.every(id => seen.has(spriteID(id, d.unownForm))),
-      dur: prev ? d.caughtAt - prev : null, tokens: prev && hours ? tokensBetween(hours, prev, d.caughtAt) : null};
-    d.chain.forEach(id => seen.add(spriteID(id, d.unownForm)));
-    return c;
-  });
-}
+const nameOf = (id: number, form: string | null) => withForm(NAMES[id - 1], id, form);
 
 function Daily({byDay, dayTokens, first}: {byDay: Map<string, Capture[]>; dayTokens: Record<string, number>; first: number}) {
   const [tip, setTip] = useState<{k: string; left: number; top: number; on: boolean} | null>(null);
@@ -81,7 +58,7 @@ function Daily({byDay, dayTokens, first}: {byDay: Map<string, Capture[]>; dayTok
         })}
       </svg>
       <div class="tip" style={tip ? {opacity: tip.on ? 1 : 0, left: tip.left, top: tip.top} : undefined}>
-        {tip && <><b>{fmtDayLong(noon(tip.k))}</b>{tok(dayTokens[tip.k] || 0)}{tipList.length > 0 && <><br />{tipList.map(c => c.name).join(', ')}</>}</>}
+        {tip && <><b>{fmtDayLong(noon(tip.k))}</b>{tok(dayTokens[tip.k] || 0)}{tipList.length > 0 && <><br />{tipList.map(c => nameOf(c.finalId, c.d.unownForm)).join(', ')}</>}</>}
       </div>
     </div>
   );
@@ -95,7 +72,7 @@ function CaptureRow({c}: {c: Capture}) {
       <img loading="lazy" alt="" src={bwSprite(spriteID(c.finalId, d.unownForm), {shiny: d.isShiny})} />
       <div style="min-width:0">
         <div class="nm">
-          {c.name} <RarityTag rarity={d.rarity} />
+          {nameOf(c.finalId, d.unownForm)} <RarityTag rarity={d.rarity} />
           {d.baseID === 132 && <span class="flag ditto">{NAMES[131]}</span>}
           {d.isShiny && <span class="flag shiny">Shiny ✦</span>}
           {c.dupe && <span class="flag">{tr('Doublon', 'Duplicate')}</span>}
@@ -108,6 +85,7 @@ function CaptureRow({c}: {c: Capture}) {
 }
 
 function Journal({dex, hours, missing}: {dex: DexEntry[]; hours: Hours | null; missing: string[]}) {
+  const [duplicatedOpen, setDuplicatedOpen] = useState(false);
   const caps = captures(dex, hours), timed = caps.filter(c => c.dur != null);
   const byDay = new Map<string, Capture[]>();
   for (const c of caps) { const k = dayKey(c.at); if (!byDay.has(k)) byDay.set(k, []); byDay.get(k)!.push(c); }
@@ -117,17 +95,33 @@ function Journal({dex, hours, missing}: {dex: DexEntry[]; hours: Hours | null; m
   const fastest = timed.slice().sort((a, b) => a.dur! - b.dur!)[0];
   const bigDay = Object.entries(dayTokens).sort((a, b) => b[1] - a[1])[0];
   const withTok = timed.filter(c => c.tokens != null);
-  const dupes = caps.filter(c => c.dupe).length;
+  const dupes = caps.filter(c => c.dupe).length, duplicated = duplicatedSpecies(caps);
   const tiles: TileData[] = [
     ['Graduations', String(caps.length), tr(`dont ${dupes} doublons`, `${dupes} of them duplicates`)],
     [tr('Record en un jour', 'Best day'), bestDay ? `${bestDay.length} graduations` : '—', bestDay ? fmtDayShort(bestDay[0].at) : ''],
-    [tr('La plus rapide', 'Fastest'), fastest ? fmtDur(fastest.dur!) : '—', fastest ? fastest.name : ''],
+    [tr('La plus rapide', 'Fastest'), fastest ? fmtDur(fastest.dur!) : '—', fastest ? nameOf(fastest.finalId, fastest.d.unownForm) : ''],
   ];
   if (bigDay) tiles.push([tr('Record de tokens', 'Most tokens in a day'), tok(bigDay[1]), fmtDayShort(noon(bigDay[0]))]);
   if (withTok.length) tiles.push([tr('Coût moyen', 'Average cost'), tok(withTok.reduce((x, c) => x + c.tokens!, 0) / withTok.length), tr('en tokens par graduation', 'in tokens per graduation')]);
   return <>
     <section class="panel" aria-label="Records">
       <Tiles items={tiles} />
+      {duplicated.length > 0 && (
+        <details class="duplicated" open={duplicatedOpen} onToggle={e => setDuplicatedOpen(e.currentTarget.open)}>
+          <summary>{duplicatedOpen ? tr('Masquer les Pokémon en double', 'Hide the duplicated Pokémon')
+            : duplicated.length > 1 ? tr(`Voir les ${duplicated.length} Pokémon en double`, `See the ${duplicated.length} duplicated Pokémon`)
+            : tr('Voir le Pokémon en double', 'See the duplicated Pokémon')}</summary>
+          <p class="hint">{tr(`Une graduation est un doublon quand chaque espèce de sa lignée avait déjà été atteinte par une graduation précédente, chaque forme de ${NAMES[200]} comptant à part.`,
+            `A graduation is a duplicate when every species along its evolution chain had already been reached by an earlier graduation, each ${NAMES[200]} form counting as its own species.`)}</p>
+          <div class="duplicated-grid">
+            {duplicated.map(r => (
+              <div key={spriteID(r.finalId, r.form)}>
+                <img loading="lazy" alt="" src={bwSprite(spriteID(r.finalId, r.form))} /><span class="nm">{nameOf(r.finalId, r.form)}</span><b>{`×${r.copies}`}</b>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
       {hours && missing.length > 0 && <p class="hint">{tr(`Tokens comptés sans ceux de ${missing.join(', ')}, que le serveur local ne sait pas lire : l'app les compte, donc les vrais totaux sont plus élevés.`,
         `Tokens counted without the ${missing.join(', ')} ones, which the local server cannot read: the app counts them, so the real totals are higher.`)}</p>}
     </section>
