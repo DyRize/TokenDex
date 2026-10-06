@@ -22,3 +22,11 @@
 .flag.shiny{color:var(--r-legendary); border-color:color-mix(in srgb, var(--r-legendary) 50%, transparent);}
 .flag.ditto{color:#c77dff; border-color:color-mix(in srgb, #c77dff 50%, transparent);}
 .days{display:flex; flex-direction:column; gap:18px;}
+.duplicated summary{width:max-content; cursor:pointer; font:600 13.5px var(--f-ui); color:var(--s3);}
+.duplicated summary:focus-visible{outline:2px solid var(--s3); outline-offset:2px; border-radius:4px;}
+.duplicated .hint{margin:8px 0 10px;}
+.duplicated-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:4px 14px;}
+.duplicated-grid > div{display:flex; align-items:center; gap:8px; min-width:0;}
+.duplicated-grid img{width:40px; height:40px; image-rendering:pixelated; flex:none; margin:-4px 0;}
+.duplicated-grid .nm{font-weight:600; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.duplicated-grid b{font:600 13.5px var(--f-ui); font-variant-numeric:tabular-nums; color:var(--ink-2);}
