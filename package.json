@@ -8,6 +8,7 @@
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint --type-aware",
+    "pretest": "node -e \"if (+process.versions.node.split('.')[0] < 24) { console.error('npm test needs Node 24, from .nvmrc: run nvm use'); process.exit(1) }\"",
     "test": "vitest run && python3 -m unittest test_serve"
   },
   "dependencies": {
