@@ -20,7 +20,7 @@ body:
   - type: input
     id: page
     attributes:
-      label: Page
+      label: Page you were on
   - type: input
     id: lang
     attributes:
