@@ -11,3 +11,7 @@ Nothing the pages send out of the machine (a feedback link, a prefilled issue) c
 ## Page logic
 
 What a page computes from the save (counts, odds, rankings, team edits) lives in a pure function with a Vitest test, like the next egg's draw; the component only renders it.
+
+## What a page shows
+
+A secondary view never pushes a page's main list down: it folds, or goes below. A count shown to the player counts what they can see, not a difference they have to work out.
