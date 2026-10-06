@@ -8,6 +8,7 @@ import {useSave, useServed} from '../../lib/hooks';
 import {LANG, LOCALE, tr} from '../../lib/i18n';
 import type {Rarity, State} from '../../lib/save';
 import {bwSprite, spriteID, withForm} from '../../lib/sprites';
+import {lead, move, replace, toggle} from './team';
 
 const RPLURAL: Record<Rarity, string> = LANG === 'fr' ? {common: 'Communs', uncommon: 'Peu communs', rare: 'Rares', legendary: 'Légendaires'} : RLABEL;
 const RANK: Record<Rarity, number> = {common: 0, uncommon: 1, rare: 2, legendary: 3};
@@ -204,7 +205,51 @@ function Avatars({avatar, onPick}: {avatar: string; onPick: (slug: string) => vo
   </>;
 }
 
-function Picks({cands, team, full, onToggle, onLead}: {cands: Cand[]; team: Cand[]; full: boolean; onToggle: (id: string) => void; onLead: (id: string) => void}) {
+function TeamBar({team, newcomer, onMove, onReplace}: {team: Cand[]; newcomer: Cand | null; onMove: (from: number, to: number) => void; onReplace: (at: number) => void}) {
+  const [drag, setDrag] = useState<number | null>(null);
+  const [over, setOver] = useState<number | null>(null);
+  const bar = useRef<HTMLDivElement>(null), refocusId = useRef('');
+  useEffect(() => {
+    const at = team.findIndex(x => x.id === refocusId.current);
+    refocusId.current = '';
+    if (at >= 0) (bar.current!.children[at] as HTMLElement).focus();
+  });
+  const endDrag = () => { setDrag(null); setOver(null); };
+  return <>
+    <p class={newcomer ? 'tbar-say asking' : 'tbar-say'}>
+      <span role="status">{newcomer ? tr(`Remplacer qui par ${newcomer.name} ? Choisis une place, ou Échap pour annuler.`, `Replace whom with ${newcomer.name}? Pick a slot, or press Escape to cancel.`) : ''}</span>
+      {!newcomer && team.length > 1 && tr('Glisse un Pokémon pour changer l\'ordre, ou prends les flèches gauche et droite.', 'Drag a Pokémon to change the order, or use the left and right arrows.')}
+    </p>
+    <div class={newcomer ? 'tbar asking' : 'tbar'} ref={bar}>
+      {Array.from({length: 6}, (_, i) => {
+        const x = team[i], cls = (x ? 'tslot' : 'tslot empty') + (drag === i ? ' dragging' : '') + (over === i ? ' over' : '');
+        const drop = {
+          onDragOver: (e: DragEvent) => { if (drag === null) return; e.preventDefault(); setOver(i === drag ? null : i); },
+          onDragLeave: () => setOver(o => o === i ? null : o),
+          onDrop: (e: DragEvent) => { e.preventDefault(); if (drag !== null && drag !== Math.min(i, team.length - 1)) onMove(drag, i); endDrag(); },
+        };
+        if (!x) return <div key={i} class={cls} {...drop}>{tr('Libre', 'Empty')}</div>;
+        return (
+          <div key={i} class={cls} role="button" tabindex={0} draggable aria-label={`${x.name}, ${tr('place', 'slot')} ${i + 1}${i === 0 ? tr(', chef', ', lead') : ''}`}
+            onDragStart={e => { e.dataTransfer!.setData('text/plain', x.id); e.dataTransfer!.effectAllowed = 'move'; setDrag(i); }} onDragEnd={endDrag} {...drop}
+            onClick={() => { if (newcomer) onReplace(i); }}
+            onKeyDown={e => {
+              if (newcomer && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); return onReplace(i); }
+              const to = e.key === 'ArrowLeft' ? i - 1 : e.key === 'ArrowRight' ? i + 1 : -1;
+              if (to < 0 || to >= team.length) return;
+              e.preventDefault(); refocusId.current = x.id; onMove(i, to);
+            }}>
+            {i === 0 && <span class="lead">{tr('Chef', 'Lead')}</span>}
+            <img alt="" src={bwSprite(spriteID(x.sp, x.form), {shiny: x.shiny})} /><span>{x.name}{x.shiny && <> <i class="sh">✦</i></>}</span>
+          </div>
+        );
+      })}
+    </div>
+  </>;
+}
+
+function Picks({cands, team, newcomer, onToggle, onLead, onMove, onReplace}: {cands: Cand[]; team: Cand[]; newcomer: Cand | null;
+  onToggle: (id: string) => void; onLead: (id: string) => void; onMove: (from: number, to: number) => void; onReplace: (at: number) => void}) {
   const [q, setQ] = useState('');
   const [rar, setRar] = useState(() => new Set(Object.keys(RANK) as Rarity[]));
   const [shiny, setShiny] = useState(false);
@@ -215,9 +260,8 @@ function Picks({cands, team, full, onToggle, onLead}: {cands: Cand[]; team: Cand
   const list = cands.filter(x => rar.has(x.rarity) && (!shiny || x.shiny) && (!mine || pos.has(x.id)) && (!query || fold(x.name).includes(query))).sort(SORTS[sort]);
   const toggleRar = (r: Rarity) => setRar(prev => { const next = new Set(prev); next.has(r) ? next.delete(r) : next.add(r); return next; });
   return <>
-    <div class="panel-head"><h2>{tr('Ton équipe', 'Your team')}</h2><p>{full
-      ? tr('Ton équipe est pleine : retire d\'abord quelqu\'un.', 'Your team is full: remove someone first.')
-      : tr('Clique sur un Pokémon pour l\'ajouter ou le retirer, six au plus. ★ en fait le chef de ton équipe.', 'Click a Pokémon to add or remove it, six at most. ★ makes it your team\'s lead.')}</p></div>
+    <div class="panel-head"><h2>{tr('Ton équipe', 'Your team')}</h2><p>{tr('Clique sur un Pokémon pour l\'ajouter ou le retirer ; équipe pleine, choisis qui il remplace. ★ en fait le chef de ton équipe.', 'Click a Pokémon to add or remove it; with a full team, pick whom it replaces. ★ makes it your team\'s lead.')}</p></div>
+    <TeamBar team={team} newcomer={newcomer} onMove={onMove} onReplace={onReplace} />
     <div class="filters picktools">
       <input type="search" placeholder={tr('Chercher un Pokémon', 'Search for a Pokémon')} aria-label={tr('Chercher un Pokémon', 'Search for a Pokémon')} autocomplete="off"
         value={q} onInput={e => setQ(e.currentTarget.value)} />
@@ -242,7 +286,7 @@ function Picks({cands, team, full, onToggle, onLead}: {cands: Cand[]; team: Cand
       {list.map(x => {
         const at = pos.get(x.id);
         return (
-          <div key={x.id} class={at ? 'pick on' : 'pick'}>
+          <div key={x.id} class={at ? 'pick on' : x === newcomer ? 'pick asking' : 'pick'}>
             <button type="button" class="pick-main" aria-pressed={!!at} title={`${x.name}${x.at ? tr(', capturé le ', ', caught on ') + fmtDate(x.at) : ''}`} onClick={() => onToggle(x.id)}>
               <img alt="" src={bwSprite(spriteID(x.sp, x.form), {shiny: x.shiny})} /><span>{x.name}{x.shiny && <> <i class="sh">✦</i></>}</span><em>{at || ''}</em>
             </button>
@@ -261,7 +305,7 @@ function Picks({cands, team, full, onToggle, onLead}: {cands: Cand[]; team: Cand
 function TrainerCard({st}: {st: State}) {
   const [card, setCard] = useState(loadCard);
   const [flipped, setFlipped] = useState(false);
-  const [full, setFull] = useState(false);
+  const [newcomerId, setNewcomerId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
   const msgTimer = useRef(0);
@@ -272,15 +316,22 @@ function TrainerCard({st}: {st: State}) {
   const update = (patch: Partial<Card>) => setCard(c => ({...c, ...patch}));
   const frame = FRAMES.find(x => x[0] === card.frame) || FRAMES[0];
   const no = `${tr('N° ID', 'ID No.')} ${card.no}`;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setNewcomerId(null); };
+    addEventListener('keydown', onKey);
+    return () => removeEventListener('keydown', onKey);
+  }, []);
   // The first edit starts from what the card shows, never from an empty team.
-  const toggle = (id: string) => {
-    const ids = team.map(x => x.id);
-    if (!ids.includes(id) && ids.length >= 6) return setFull(true);
-    setFull(false);
-    update({auto: false, picks: ids.includes(id) ? ids.filter(x => x !== id) : [...ids, id]});
-    setFlipped(true);
+  const ids = team.map(x => x.id);
+  const newcomer = newcomerId && toggle(ids, newcomerId) === null ? cands.find(x => x.id === newcomerId) || null : null;
+  const edit = (picks: string[]) => { update({auto: false, picks}); setFlipped(true); };
+  const pick = (id: string) => {
+    const next = toggle(ids, id);
+    if (!next) return setNewcomerId(newcomerId === id ? null : id);
+    setNewcomerId(null);
+    edit(next);
   };
-  const makeLead = (id: string) => { update({auto: false, picks: [id, ...team.map(x => x.id).filter(x => x !== id)]}); setFlipped(true); };
+  const replaceAt = (at: number) => { edit(replace(ids, at, newcomer!.id)); setNewcomerId(null); };
   const say = (text: string) => { setMsg(text); clearTimeout(msgTimer.current); if (text) msgTimer.current = setTimeout(() => setMsg(''), 5000); };
   const image = () => cardImage([front.current!, back.current!]);
   const fileName = `${tr('carte-dresseur', 'trainer-card')}-${card.no}.png`;
@@ -385,7 +436,7 @@ function TrainerCard({st}: {st: State}) {
       </div>
       <div class="panel-head"><h2>Avatar</h2><p>{tr('Les dresseurs des générations I à V, comme les Pokémon de l\'app. Sprites : Pokémon Showdown.', 'Trainers from generations I to V, like the app\'s Pokémon. Sprites: Pokémon Showdown.')}</p></div>
       <Avatars avatar={card.avatar} onPick={slug => { update({avatar: slug}); setFlipped(false); }} />
-      <Picks cands={cands} team={team} full={full} onToggle={toggle} onLead={makeLead} />
+      <Picks cands={cands} team={team} newcomer={newcomer} onToggle={pick} onLead={id => edit(lead(ids, id))} onMove={(from, to) => edit(move(ids, from, to))} onReplace={replaceAt} />
     </details>
   </>;
 }
