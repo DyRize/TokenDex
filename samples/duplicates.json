@@ -1,0 +1,45 @@
+{
+  "dex": [
+    {"id": "00000000-0000-4000-8000-000000000001", "baseID": 1, "finalID": 3, "rarity": "rare", "chainOrder": [1, 2, 3], "caughtAt": 811587600, "isShiny": false},
+    {"id": "00000000-0000-4000-8000-000000000002", "baseID": 4, "finalID": 6, "rarity": "rare", "chainOrder": [4, 5, 6], "caughtAt": 811605600, "isShiny": false},
+    {"id": "00000000-0000-4000-8000-000000000003", "baseID": 133, "finalID": 134, "rarity": "rare", "chainOrder": [133, 134], "caughtAt": 811627200, "isShiny": false},
+    {"id": "00000000-0000-4000-8000-000000000004", "baseID": 1, "finalID": 3, "rarity": "rare", "chainOrder": [1, 2, 3], "caughtAt": 811670400, "isShiny": false},
+    {"id": "00000000-0000-4000-8000-000000000005", "baseID": 133, "finalID": 135, "rarity": "rare", "chainOrder": [133, 135], "caughtAt": 811695600, "isShiny": false},
+    {"id": "00000000-0000-4000-8000-000000000006", "baseID": 201, "finalID": 201, "rarity": "common", "chainOrder": [201], "caughtAt": 811735200, "isShiny": false, "unownForm": "b"},
+    {"id": "00000000-0000-4000-8000-000000000007", "baseID": 201, "finalID": 201, "rarity": "common", "chainOrder": [201], "caughtAt": 811774800, "isShiny": false, "unownForm": "c"},
+    {"id": "00000000-0000-4000-8000-000000000008", "baseID": 133, "finalID": 134, "rarity": "rare", "chainOrder": [133, 134], "caughtAt": 811803600, "isShiny": false},
+    {"id": "00000000-0000-4000-8000-000000000009", "baseID": 201, "finalID": 201, "rarity": "common", "chainOrder": [201], "caughtAt": 811843200, "isShiny": false, "unownForm": "b"},
+    {"id": "00000000-0000-4000-8000-000000000010", "baseID": 1, "finalID": 3, "rarity": "rare", "chainOrder": [1, 2, 3], "caughtAt": 811875600, "isShiny": false, "releasedAt": 811879200},
+    {"id": "00000000-0000-4000-8000-000000000011", "baseID": 1, "finalID": 3, "rarity": "rare", "chainOrder": [1, 2, 3], "caughtAt": 811929600, "isShiny": true}
+  ],
+  "collectedFinals": [
+    "1:3",
+    "4:6",
+    "133:134",
+    "133:135",
+    "201:201"
+  ],
+  "active": {
+    "baseID": 7,
+    "rarity": "rare",
+    "isShiny": false,
+    "pathIDs": [
+      7,
+      8,
+      9
+    ],
+    "plannedPathIDs": [
+      7,
+      8,
+      9
+    ],
+    "stageIndex": 1,
+    "totalForms": 3,
+    "usedAtStage": 120000000,
+    "hasGrowthBoost": false
+  },
+  "eggUsage": 0,
+  "inventory": {},
+  "usedSinceInstall": 2500000000,
+  "spentTokens": 0
+}

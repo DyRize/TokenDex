@@ -1,5 +1,7 @@
 import {describe, expect, it} from 'vitest';
-import type {DexEntry} from '../../lib/save';
+import duplicatesSave from '../../../samples/duplicates.json';
+import noDuplicatesSave from '../../../samples/no-duplicates.json';
+import {readSaveFile, type DexEntry} from '../../lib/save';
 import {captures, duplicatedSpecies} from './captures';
 
 const grad = (chain: number[], hour: number, more: Partial<DexEntry> = {}): DexEntry => ({
@@ -35,5 +37,11 @@ describe('duplicatedSpecies', () => {
     expect(rows([grad([1, 2, 3], 1), grad([1, 2, 3], 2, {releasedAt: 1})])).toEqual([]);
     expect(rows([grad([1, 2, 3], 1, {releasedAt: 1}), grad([1, 2, 3], 2)])).toEqual([]);
     expect(rows([grad([1, 2, 3], 1), grad([1, 2, 3], 2, {releasedAt: 1}), grad([1, 2, 3], 3)])).toEqual([{finalId: 3, form: null, copies: 2}]);
+  });
+
+  it('finds the duplicated Pokémon of the sample saves', async () => {
+    const dex = async (save: unknown) => (await readSaveFile({text: async () => JSON.stringify(save), lastModified: 0})).st.dex;
+    expect(rows(await dex(duplicatesSave)).map(r => [r.finalId, r.form, r.copies])).toEqual([[3, null, 3], [134, null, 2], [201, 'b', 2]]);
+    expect(rows(await dex(noDuplicatesSave))).toEqual([]);
   });
 });

@@ -56,6 +56,8 @@ Après un `git pull`, relance `npm install && npm run build`. Si macOS propose d
 
 `npm run dev` sert les pages sur http://127.0.0.1:5173 et les recharge à chaque modification. Laisse `serve.py` tourner à côté : c'est lui qui fournit la sauvegarde et l'historique, le serveur de dev les lui demande. `npm run typecheck` vérifie les types, `npm run build` refait `dist/`.
 
+`samples/` contient des sauvegardes inventées pour les cas qu'une vraie sauvegarde montre rarement : doublons, formes de Zarbi, Pokémon relâché. Pour en voir une, arrête `serve.py` et charge-la depuis l'accueil ; elle reste jusqu'à ce que `serve.py` serve de nouveau la sauvegarde de l'app. Ce sont aussi elles qu'on montre en capture d'écran, puisqu'une vraie sauvegarde montre la collection de quelqu'un.
+
 Pour développer, il faut Node 24 (`nvm use` le prend dans `.nvmrc`) : `npm test` lance les tests (Vitest, puis ceux de `serve.py`), `npm run lint` le lint (Oxlint, avec les règles qui ont besoin des types via tsgo). Pour seulement lancer l'app, Node 20.19 suffit.
 
 La version est dans `package.json` ; tant qu'elle porte un suffixe (`0.1.0-alpha.1`), le menu affiche un badge « alpha ».
