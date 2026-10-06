@@ -1,5 +1,6 @@
 // Species data from PokéAPI: names in both languages, the hatch rarity of each species' line, and the finals of each base line.
 import {LANG} from '../lib/i18n';
+import type {Rarity} from '../lib/save';
 
 export const NAMES_FR: readonly string[] = [
   "Bulbizarre","Herbizarre","Florizarre","Salamèche","Reptincel","Dracaufeu","Carapuce","Carabaffe","Tortank","Chenipan",
@@ -138,6 +139,7 @@ export const NAMES_EN: readonly string[] = [
 export const NAMES = LANG === 'en' ? NAMES_EN : NAMES_FR;
 /** One letter per species, #1 first: c common, u uncommon, r rare, l legendary. */
 export const RAR = 'rrrrrrrrrcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccrcccccccccccrccccccuuccuurccuucrrcccccccrrrrrrccrrrrrrrrrrrrulllrrrllrrrrrrrrrcccccccccccccccccccccccccccccrccuccrrrcrccucccurccrrcruuuccccuccrrruucuurrruurrrrclllrrrlllrrrrrrrrrcccccccccccccccccccccccccccccccccccccccccrrcccccuucccccccccccccuccccccccccuurrccccccrrrrccrccccccurcccccccccrcrrrrrrllllllllllrrrrrrrrrccccccccccccrrrruuuuucccccccrccccrrccucccccccrurrruuuccuucccccruuucrurrrcurrucrccccrlllllllllllllllrrrrrrrrrcccccccccccccccccccccccccuucccccccrrccccccccccrcccuucccccrccrrrrccuuccccccccccccccccccccccucccccccccccccccuuuuurccuccrccuurccccuurrrrrllllllllllll';
+export const RAR_KEY: Record<string, Rarity> = {l: 'legendary', r: 'rare', u: 'uncommon', c: 'common'};
 export const FINALS: Readonly<Record<string, readonly number[]>> = {
   "1":[3],"4":[6],"7":[9],"10":[12],"13":[15],"16":[18],"19":[20],"21":[22],"23":[24],"27":[28],
   "29":[31],"32":[34],"37":[38],"41":[169],"43":[45,182],"46":[47],"48":[49],"50":[51],"52":[53],"54":[55],

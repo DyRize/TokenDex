@@ -19,7 +19,18 @@ body.dragging .wrap{outline:2px dashed var(--s3); outline-offset:8px; border-rad
 .newbar{display:flex; flex-wrap:wrap; gap:10px 14px; align-items:center; font-size:14px;}
 
 .gen{display:flex; flex-direction:column; gap:12px;}
-.gen-head{display:flex; flex-wrap:wrap; align-items:center; gap:6px 14px;}
+.toolbar .btn:disabled{opacity:.5; cursor:default; border-color:var(--line); background:var(--surface-2);}
+.gen-head{position:relative; display:flex; flex-wrap:wrap; align-items:center; gap:6px 14px;}
+.gen-head button{display:inline-flex; align-items:center; gap:10px; font:inherit; color:inherit; background:none; border:0; padding:0; cursor:pointer;}
+.gen-head button::before{content:""; width:8px; height:8px; border-right:2px solid var(--ink-3); border-bottom:2px solid var(--ink-3);
+  transform:rotate(-45deg); transition:transform .15s;}
+.gen-head button[aria-expanded=true]::before{transform:rotate(45deg);}
+.gen-head button::after{content:""; position:absolute; inset:-6px; border-radius:10px;}
+.gen-head button:focus-visible{outline:none;}
+.gen-head button:focus-visible::after{outline:2px solid var(--s3);}
+.gen-head button:disabled{cursor:default;}
+.gen-head button:disabled::before{opacity:.4;}
+.gen-head .caps{flex-basis:100%;}
 .gen-head .count{font-size:13px; color:var(--ink-3);}
 .gen-head .prog{flex:1 1 120px; max-width:220px; height:6px; border-radius:3px; background:var(--line); overflow:hidden;}
 .gen-head .prog i{display:block; height:100%; background:var(--s3); border-radius:3px;}
