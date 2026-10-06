@@ -2,17 +2,18 @@ import './page.css';
 import {useEffect, useMemo, useRef, useState} from 'preact/hooks';
 import {Header, Tiles, mount, saveEyebrow} from '../../components/Page';
 import {RLABEL} from '../../components/Rarity';
-import {NAMES, RAR} from '../../data/species';
+import {NAMES, RAR, RAR_KEY} from '../../data/species';
 import {useSave} from '../../lib/hooks';
 import {LOCALE, tr} from '../../lib/i18n';
-import {forgetSave, readSaveFile, type Active, type Rarity, type Save} from '../../lib/save';
+import {forgetSave, readSaveFile, type Active, type Save} from '../../lib/save';
 import {bwSprite, spriteID} from '../../lib/sprites';
+import {GENS, percent, tally, type RarityTally, type Tally} from './counts';
 
-const RAR_KEY: Record<string, Rarity> = {l: 'legendary', r: 'rare', u: 'uncommon', c: 'common'};
-const GENS: [string, number, number][] = [['Kanto', 1, 151], ['Johto', 152, 251], ['Hoenn', 252, 386], ['Sinnoh', 387, 493], [tr('Unys', 'Unova'), 494, 649]];
 const SEEN_KEY = 'poketokenbar-pokedex-seen-v1';
 const AUTO_KEY = 'poketokenbar-pokedex-wtp-auto-v1';
+const COLLAPSED_KEY = 'poketokenbar-pokedex-collapsed-v1';
 const pad = (n: number) => String(n).padStart(3, '0');
+const fmtPct = (t: Tally) => percent(t).toLocaleString(LOCALE, {style: 'unit', unit: 'percent'});
 const fmtDay = (ms: number) => new Date(ms).toLocaleDateString(LOCALE, {day: 'numeric', month: 'long', year: 'numeric'});
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -56,6 +57,8 @@ function unseenAtLoad(dex: Dex) {
   return new Set<number>();
 }
 function markSeen(ids: number[]) { const seen = readSeen() || new Set(); ids.forEach(id => seen.add(id)); writeSeen(seen); }
+function readCollapsed() { try { const v = JSON.parse(localStorage.getItem(COLLAPSED_KEY) || '[]'); return new Set<number>(Array.isArray(v) ? v : []); } catch { return new Set<number>(); } }
+function writeCollapsed(collapsed: Set<number>) { try { localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...collapsed])); } catch {} }
 
 /* ---------- Quel est ce Pokémon ? ---------- */
 function Wtp({dex, ids, onSeen, onClose}: {dex: Dex; ids: number[]; onSeen: (ids: number[]) => void; onClose: () => void}) {
@@ -130,10 +133,16 @@ function Mon({dex, id, isNew, onOpen}: {dex: Dex; id: number; isNew: boolean; on
   );
 }
 
+function RarityChip({t}: {t: RarityTally}) {
+  return <span class="cap" style={`--c:var(--r-${t.rarity})`}><i></i>{RLABEL[t.rarity] + ' '}<b>{t.caught}</b>{` / ${t.total} · ${fmtPct(t)}`}</span>;
+}
+
 function Grid({dex, unseen, onOpen}: {dex: Dex; unseen: Set<number>; onOpen: (ids: number[]) => void}) {
   const [filter, setFilter] = useState('all');
   const [query, setQuery] = useState('');
   const [auto, setAuto] = useState(() => { try { return localStorage.getItem(AUTO_KEY) !== '0'; } catch { return true; } });
+  const [collapsed, setCollapsed] = useState(readCollapsed);
+  const storeCollapsed = (next: Set<number>) => { setCollapsed(next); writeCollapsed(next); };
   const q = query.trim().toLowerCase().replace(/^#/, '');
   const keep = (id: number) => {
     const g = info(dex, id), shown = g && !unseen.has(id);
@@ -143,19 +152,25 @@ function Grid({dex, unseen, onOpen}: {dex: Dex; unseen: Set<number>; onOpen: (id
     if (/^\d+$/.test(q)) return String(id).includes(String(+q));
     return !!shown && g.name.toLowerCase().includes(q);
   };
-  const gens = GENS.map(([name, a, b]) => {
+  const visible = GENS.map(([name, a, b]) => {
     const ids: number[] = []; for (let i = a; i <= b; i++) if (keep(i)) ids.push(i);
-    let n = 0; for (let i = a; i <= b; i++) if (dex.got.has(i)) n++;
-    return ids.length > 0 && (
-      <section key={name} class="panel gen" aria-label={name}>
+    return {name, a, b, ids, open: !!q || !collapsed.has(a)};
+  }).filter(g => g.ids.length);
+  const toggle = (a: number) => { const next = new Set(collapsed); if (!next.delete(a)) next.add(a); storeCollapsed(next); };
+  const anyOpen = visible.some(g => g.open);
+  const gens = visible.map(({name, a, b, ids, open}) => {
+    const t = tally(dex.got, a, b);
+    return (
+      <section key={a} class="panel gen" aria-label={name}>
         <div class="gen-head">
-          <h2>{name}</h2>
-          <span class="count">{`${n} / ${b - a + 1}`}</span><span class="prog"><i style={`width:${(n / (b - a + 1) * 100).toFixed(1)}%`}></i></span>
+          <h2><button type="button" aria-expanded={open} disabled={!!q} onClick={() => toggle(a)}>{name}</button></h2>
+          <span class="count">{`${t.caught} / ${t.total} · ${fmtPct(t)}`}</span><span class="prog"><i style={`width:${(t.caught / t.total * 100).toFixed(1)}%`}></i></span>
+          <div class="caps">{t.rarities.map(r => <RarityChip key={r.rarity} t={r} />)}</div>
         </div>
-        <div class="dex">{ids.map(id => <Mon key={id} dex={dex} id={id} isNew={unseen.has(id)} onOpen={() => onOpen([id])} />)}</div>
+        {open && <div class="dex">{ids.map(id => <Mon key={id} dex={dex} id={id} isNew={unseen.has(id)} onOpen={() => onOpen([id])} />)}</div>}
       </section>
     );
-  }).filter(Boolean);
+  });
   return <>
     <section class="panel" aria-label={tr('Filtres', 'Filters')}>
       <div class="toolbar">
@@ -169,6 +184,9 @@ function Grid({dex, unseen, onOpen}: {dex: Dex; unseen: Set<number>; onOpen: (id
           <input type="checkbox" checked={auto} onChange={e => { const on = e.currentTarget.checked; setAuto(on); try { localStorage.setItem(AUTO_KEY, on ? '1' : '0'); } catch {} }} />
           {' '}<span>{tr('Révélation à l\'arrivée', 'Reveal on load')}</span>
         </label>
+        <button type="button" class="btn" disabled={!!q} onClick={() => storeCollapsed(anyOpen ? new Set(GENS.map(([, a]) => a)) : new Set())}>
+          {anyOpen ? tr('Tout replier', 'Collapse all') : tr('Tout déplier', 'Expand all')}
+        </button>
       </div>
     </section>
     {gens.length ? gens : <section class="panel"><p class="empty">{tr('Aucun Pokémon ne correspond.', 'No Pokémon matches.')}</p></section>}
@@ -186,10 +204,7 @@ function SaveHead({dex, unseen}: {dex: Dex; unseen: Set<number>}) {
       [tr('En cours', 'Growing'), dex.active ? NAMES[dex.active.path[dex.active.stage] - 1] : tr('Œuf', 'Egg'), dex.active ? tr('entouré en pointillés', 'dotted outline') : tr('dans l\'œuf', 'still in the egg')],
     ]} />
     <div class="caps">
-      {['l', 'r', 'u', 'c'].map(r => {
-        let n = 0, t = 0; for (let i = 1; i <= 649; i++) if (RAR[i - 1] === r) { t++; if (got.has(i)) n++; }
-        return <span key={r} class="cap" style={`--c:var(--r-${RAR_KEY[r]})`}><i></i>{RLABEL[RAR_KEY[r]] + ' '}<b>{n}</b>{` / ${t}`}</span>;
-      })}
+      {tally(got, 1, 649).rarities.map(t => <RarityChip key={t.rarity} t={t} />)}
     </div>
   </>;
 }
