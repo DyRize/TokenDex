@@ -28,6 +28,7 @@ function Guard({children}: {children: ComponentChildren}) {
 
 /** Mounts a page: the menu, then the page itself in the centered column. */
 export function mount(title: string, App: () => ComponentChildren) {
+  document.documentElement.lang = LANG;
   document.title = `${title} · TokenDex`;
   render(<><Nav /><Guard><App /></Guard></>, document.getElementById('root')!);
 }
