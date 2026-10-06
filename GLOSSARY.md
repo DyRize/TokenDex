@@ -8,6 +8,10 @@ Web pages around a PokeTokenBar save: what the player has collected, how lucky t
 A graduation whose every species along its evolution chain had already been reached by an earlier graduation. Each Unown form counts as its own species.
 _Avoid_: double, repeat
 
+**Copy**:
+One graduation of a species, counted with the others of the same species and form. A species with N copies has at least one duplicate when N > 1.
+_Avoid_: duplicate
+
 **Graduated line**:
 A line with at least one graduation, which the next egg draws at half weight.
 _Avoid_: duplicate
