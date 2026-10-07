@@ -56,7 +56,7 @@ After a `git pull`, run `npm install && npm run build` again. If macOS offers to
 
 `npm run dev` serves the pages on http://127.0.0.1:5173 and reloads them on every change. Keep `serve.py` running alongside: it provides the save and the history, and the dev server asks it for them. `npm run typecheck` checks the types, `npm run build` rebuilds `dist/`.
 
-`samples/` holds made-up saves for cases a real save rarely shows: duplicates, Unown forms, a released Pokémon. To look at one, stop `serve.py` and load it on the home page; it stays until `serve.py` serves the app's save again. They are also the saves to show in a screenshot, since a real one shows someone's collection.
+`samples/` holds made-up saves for cases a real save rarely shows: duplicates, Unown forms, a released Pokémon, 150 hatches with bought eggs and a Shiny Charm. To look at one, stop `serve.py` and load it on the home page; it stays until `serve.py` serves the app's save again. They are also the saves to show in a screenshot, since a real one shows someone's collection.
 
 Development needs Node 24 (`nvm use` picks it from `.nvmrc`): `npm test` runs the tests (Vitest, then the `serve.py` tests), `npm run lint` the linter (Oxlint, with the rules that need types through tsgo). To only run the app, Node 20.19 is enough.
 

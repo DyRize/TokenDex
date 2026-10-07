@@ -1,102 +1,33 @@
 import './page.css';
 import type {ComponentChildren} from 'preact';
-import {useMemo, useRef, useState} from 'preact/hooks';
+import {useLayoutEffect, useMemo, useRef, useState} from 'preact/hooks';
 import {Header, NoSave, Tiles, mount, saveEyebrow, type TileData} from '../../components/Page';
 import {RarityTag} from '../../components/Rarity';
-import {LINE_ROWS} from '../../data/lines';
 import {NAMES} from '../../data/species';
 import {useSave} from '../../lib/hooks';
 import {LANG, LOCALE, tr} from '../../lib/i18n';
-import type {Rarity, State} from '../../lib/save';
 import {bwSprite, spriteID, withForm} from '../../lib/sprites';
+import {BY_ID, DITTO, FAV_TOP, LINES, criteria, luckAfterEach, luckScore, replay, type Criterion, type CriterionKey, type Hatch} from './luck';
 
-interface Line { id: number; name: string; cr: number; leg: boolean; evo: boolean; rarity: Rarity; votes: number; rank: number; heart: boolean }
-/* Fans' favourites: a line gathers the votes of its members along one evolution path (Charmander, Charmeleon and
-   Charizard add up; Eevee only adds its best loved evolution, since a hatch grows into a single one). Votes come from
-   the 2019 Reddit survey, one favourite per voter. The 75 best loved lines are the "coups de cœur", about one hatch in five. */
-const FAV_TOP = 75;
-const LINES: Line[] = LINE_ROWS.map(([id, cr, leg, evo, votes]) => ({id, name: NAMES[id - 1], cr, leg: !!leg, evo: !!evo,
-  rarity: leg ? 'legendary' : cr <= 45 ? 'rare' : cr <= 120 ? 'uncommon' : 'common', votes, rank: 0, heart: false}));
-[...LINES].sort((a, b) => b.votes - a.votes).forEach((l, i) => { l.rank = i + 1; l.heart = i < FAV_TOP; });
-const BY_ID = new Map(LINES.map(l => [l.id, l]));
-const DITTO = 132, DITTO_NAME = NAMES[DITTO - 1];
+const DITTO_NAME = NAMES[DITTO - 1];
 const CHARM_KEY = 'poketokenbar-charm-from-v1';
 const nf = new Intl.NumberFormat(LOCALE);
 const num = (v: number, d = 1) => v.toLocaleString(LOCALE, {maximumFractionDigits: d});
 const oneIn = (p: number) => p > 0 ? tr('1 sur ', '1 in ') + nf.format(Math.round(1 / p)) : '–';
 const pctTxt = (p: number) => Math.round(p * 100) + tr(' %', '%');
 
-// Exact distribution of a sum of independent Bernoulli(p_i).
-function poissonBinomial(ps: number[]) {
-  let dist = [1];
-  for (const p of ps) {
-    const next = new Array<number>(dist.length + 1).fill(0);
-    for (let k = 0; k < dist.length; k++) { next[k] += dist[k] * (1 - p); next[k + 1] += dist[k] * p; }
-    dist = next;
-  }
-  return dist;
-}
-// Share of equally placed players who did worse (mid-p on ties).
-function luck(ps: number[], obs: number, higherIsBetter = true) {
-  const d = poissonBinomial(ps);
-  let below = 0, above = 0;
-  d.forEach((q, k) => { if (k < obs) below += q; else if (k > obs) above += q; });
-  const eq = d[obs] || 0;
-  return (higherIsBetter ? below : above) + eq / 2;
-}
-
-interface Entry { base: number; rarity: Rarity; shiny: boolean; released?: boolean; finalName?: string; form?: string | null; active: boolean }
-interface Hatch {
-  n: number; e: Entry; ditto: boolean; purchased: boolean; pLine: number; pLeg: number; pUnc: number; pRare: number; pDup: number; pFav: number; pDitto: number;
-  shinyP: number; isDup: boolean; rare: boolean; leg: boolean; unc: boolean; fav: boolean;
-}
-function replay(st: State, charm: boolean, charmFrom: number) {
-  const collected = new Set<number>();
-  const hatches: Hatch[] = [];
-  const entries: Entry[] = st.dex.map(d => ({base: d.baseID, rarity: d.rarity, shiny: d.isShiny, released: !!d.releasedAt, finalName: NAMES[d.finalID - 1], form: d.unownForm, active: false}));
-  if (st.active) entries.push({base: st.active.baseID, rarity: st.active.rarity, shiny: st.active.isShiny, active: true});
-  let prevReleased = false;
-  entries.forEach((e, i) => {
-    let total = 0, wLeg = 0, wRare = 0, wUnc = 0, wDup = 0, wEvoCommon = 0, wFav = 0;
-    const w = (l: Line) => collected.has(l.id) ? Math.max(1, Math.floor(l.cr / 2)) : l.cr;
-    for (const l of LINES) {
-      const x = w(l); total += x;
-      if (l.leg) wLeg += x; else if (l.rarity === 'rare') wRare += x; else if (l.rarity === 'uncommon') wUnc += x;
-      if (collected.has(l.id)) wDup += x;
-      if (l.heart) wFav += x;
-      if (l.rarity === 'common' && l.evo) wEvoCommon += x;
-    }
-    const pDitto = wEvoCommon / total / 128;
-    const ditto = e.base === DITTO;
-    const line = BY_ID.get(e.base);
-    hatches.push({
-      n: i + 1, e, ditto, purchased: prevReleased,
-      pLine: ditto ? pDitto : line ? w(line) / total : 0,
-      pLeg: wLeg / total, pUnc: wUnc / total, pRare: wRare / total, pDup: wDup / total, pFav: wFav / total, pDitto,
-      shinyP: charm && i + 1 >= charmFrom ? 1 / 48 : 1 / 64,
-      isDup: !ditto && collected.has(e.base),
-      rare: !ditto && !!(line && line.rarity === 'rare'),
-      leg: !!(line && line.leg),
-      unc: !ditto && !!(line && line.rarity === 'uncommon'),
-      fav: !ditto && !!(line && line.heart),
-    });
-    if (!e.active && !e.released) collected.add(e.base);
-    prevReleased = !!e.released;
-  });
-  return hatches;
-}
 const hatchName = (h: Hatch) => { const l = BY_ID.get(h.e.base); return h.ditto ? DITTO_NAME : l ? withForm(l.name, h.e.base, h.e.form) : '#' + h.e.base; };
 const hatchSprite = (h: Hatch) => bwSprite(h.ditto ? DITTO : spriteID(h.e.base, h.e.form));
 
-interface Metric { name: string; sub?: ComponentChildren; ps: number[]; obs: number; paid?: number; up: boolean; dup?: boolean; exp: number; p: number }
+interface Metric extends Criterion { name: string; sub?: ComponentChildren }
 const verdict = (p: number) => p >= .8 ? tr('très chanceux', 'very lucky') : p >= .6 ? tr('chanceux', 'lucky') : p > .4 ? tr('dans la moyenne', 'average') : p > .2 ? tr('malchanceux', 'unlucky') : tr('très malchanceux', 'very unlucky');
 
 function MetricRow({x}: {x: Metric}) {
-  const all = x.obs + (x.paid || 0);
-  const obs = LANG === 'fr' ? (x.dup
+  const all = x.obs + x.paid;
+  const obs = LANG === 'fr' ? (x.key === 'new'
     ? <><b>{nf.format(all)}</b>{` doublon${all > 1 ? 's' : ''} · ${num(x.exp)} attendus`}</>
     : <><b>{nf.format(all)}</b>{` obtenu${all > 1 ? 's' : ''} · ${num(x.exp, x.exp < 1 ? 2 : 1)} attendu${x.exp >= 2 ? 's' : ''}`}</>)
-    : x.dup ? <><b>{nf.format(all)}</b>{` duplicate${all > 1 ? 's' : ''} · ${num(x.exp)} expected`}</>
+    : x.key === 'new' ? <><b>{nf.format(all)}</b>{` duplicate${all > 1 ? 's' : ''} · ${num(x.exp)} expected`}</>
     : <><b>{nf.format(all)}</b>{` caught · ${num(x.exp, x.exp < 1 ? 2 : 1)} expected`}</>;
   return (
     <div class="metric">
@@ -130,21 +61,69 @@ function saveTiles(hs: Hatch[], charm: boolean, charmFrom: number) {
   return tiles;
 }
 
+function Curve({hs, scores}: {hs: Hatch[]; scores: number[]}) {
+  const [hover, setHover] = useState<{i: number; on: boolean} | null>(null);
+  const [place, setPlace] = useState<{left: number; top: number; arrow: number; above: boolean} | null>(null);
+  const svg = useRef<SVGSVGElement>(null), tipBox = useRef<HTMLDivElement>(null);
+  const W = 900, H = 240, L = 34, R = 64, T = 10, B = 26, GAP = 14, n = scores.length;
+  const x = (i: number) => L + (W - L - R) * i / (n - 1), y = (v: number) => T + (H - T - B) * (1 - v / 100);
+  const unit = 10 ** Math.max(0, Math.floor(Math.log10(n / 8)));
+  const step = [1, 2, 5, 10].map(k => k * unit).find(s => n / s <= 8)!;
+  const onMove = (e: MouseEvent & {currentTarget: SVGSVGElement}) => {
+    const box = e.currentTarget.getBoundingClientRect();
+    const i = Math.min(n - 1, Math.max(0, Math.round(((e.clientX - box.left) * W / box.width - L) / (W - L - R) * (n - 1))));
+    setHover(t => t && t.on && t.i === i ? t : {i, on: true});
+  };
+  useLayoutEffect(() => {
+    if (!hover) return;
+    const box = svg.current!.getBoundingClientRect(), {offsetWidth: tw, offsetHeight: th} = tipBox.current!;
+    const px = x(hover.i) * box.width / W, py = y(scores[hover.i]) * box.height / H;
+    const roomAbove = box.top + py - (document.querySelector('.ptb-nav')?.getBoundingClientRect().bottom ?? 0), roomBelow = innerHeight - box.top - py;
+    const above = roomAbove >= th + GAP || roomAbove > roomBelow, left = Math.min(box.width - tw, Math.max(0, px - tw / 2));
+    setPlace({left, top: above ? py - GAP - th : py + GAP, arrow: px - left, above});
+  }, [hover, scores]);
+  const h = hover && hs[hover.i];
+  return (
+    <div class="chart">
+      <svg ref={svg} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={tr('Indice de chance après chaque éclosion', 'Luck score after each hatch')}
+        onMouseMove={onMove} onMouseLeave={() => setHover(t => t && {...t, on: false})}>
+        {[0, 50, 100].map(v => <>
+          <line x1={L} x2={W - R} y1={y(v)} y2={y(v)} stroke={v === 50 ? 'var(--ink-3)' : 'var(--line-soft)'} stroke-dasharray={v === 50 ? '4 4' : undefined} />
+          <text x={L - 6} y={y(v) + 4} text-anchor="end" font-size="11" fill="var(--ink-3)">{v}</text>
+        </>)}
+        <text x={W - R + 6} y={y(50) + 4} font-size="11" fill="var(--ink-3)">{tr('moyenne', 'average')}</text>
+        {Array.from({length: Math.floor(n / step)}, (_, i) => (i + 1) * step).map(k =>
+          <text key={k} x={x(k - 1)} y={H - 8} text-anchor="middle" font-size="11" fill="var(--ink-3)">{k}</text>)}
+        <path d={scores.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join('')} fill="none" stroke="var(--s3)" stroke-width="2" stroke-linejoin="round" />
+        {hover && hover.on && <circle cx={x(hover.i)} cy={y(scores[hover.i])} r="4" fill="var(--s3)" stroke="var(--surface)" stroke-width="2" />}
+      </svg>
+      <div ref={tipBox} class={place && !place.above ? 'tip below' : 'tip above'}
+        style={hover && place ? {opacity: hover.on ? 1 : 0, left: place.left, top: place.top, '--arrow': `${place.arrow}px`} : undefined}>
+        {h && <>
+          <b>{tr(`Éclosion n° ${h.n}`, `Hatch No. ${h.n}`)}</b>
+          <span class="tip-poke"><img alt="" src={hatchSprite(h)} />{hatchName(h)}</span>
+          {tr(`Indice de chance : ${Math.round(scores[h.n - 1])}`, `Luck score: ${Math.round(scores[h.n - 1])}`)}
+          {h.purchased && <span class="hint">{tr('œuf acheté', 'bought egg')}</span>}
+        </>}
+      </div>
+    </div>
+  );
+}
+
 function Luck({hs}: {hs: Hatch[]}) {
   const dialog = useRef<HTMLDialogElement>(null);
-  const free = hs.filter(h => !h.purchased), paid = hs.filter(h => h.purchased);
-  const m: Metric[] = ([
-    {name: tr('Peu communs', 'Uncommon'), ps: free.map(h => h.pUnc), obs: cnt(free, h => h.unc), paid: cnt(paid, h => h.unc), up: true},
-    {name: tr('Rares', 'Rare'), sub: tr(`${DITTO_NAME} compté à part`, `${DITTO_NAME} counted separately`), ps: free.map(h => h.pRare), obs: cnt(free, h => h.rare), paid: cnt(paid, h => h.rare), up: true},
-    {name: tr('Légendaires', 'Legendary'), sub: tr('fabuleux compris', 'mythicals included'), ps: free.map(h => h.pLeg), obs: cnt(free, h => h.leg), paid: cnt(paid, h => h.leg), up: true},
-    {name: 'Shiny', sub: tr('toutes les éclosions', 'every hatch'), ps: hs.map(h => h.shinyP), obs: cnt(hs, h => h.e.shiny), up: true},
-    {name: tr('Lignes nouvelles', 'New lines'), sub: tr('moins de doublons = mieux', 'fewer duplicates = better'),
-      ps: free.filter(h => !h.ditto).map(h => h.pDup), obs: cnt(free, h => h.isDup), paid: cnt(paid, h => h.isDup), up: false, dup: true},
-    {name: DITTO_NAME, sub: tr('le déguisement à 1 sur 128', 'the 1 in 128 disguise'), ps: free.map(h => h.pDitto), obs: cnt(free, h => h.ditto), paid: cnt(paid, h => h.ditto), up: true},
-    {name: tr('Coups de cœur', 'Favorites'), sub: <>{tr(`les ${FAV_TOP} lignées préférées des fans`, `the ${FAV_TOP} lines fans love most`) + ' · '}<button type="button" class="linkbtn" onClick={() => dialog.current!.showModal()}>{tr('voir la liste', 'see the list')}</button></>,
-      ps: free.map(h => h.pFav), obs: cnt(free, h => h.fav), paid: cnt(paid, h => h.fav), up: true},
-  ] as Omit<Metric, 'exp' | 'p'>[]).map(x => ({...x, exp: x.ps.reduce((a, b) => a + b, 0), p: luck(x.ps, x.obs, x.up)}));
-  const score = Math.round(m.reduce((a, x) => a + x.p, 0) / m.length * 100);
+  const free = hs.filter(h => !h.purchased);
+  const named: Record<CriterionKey, Pick<Metric, 'name' | 'sub'>> = {
+    uncommon: {name: tr('Peu communs', 'Uncommon')},
+    rare: {name: tr('Rares', 'Rare'), sub: tr(`${DITTO_NAME} compté à part`, `${DITTO_NAME} counted separately`)},
+    legendary: {name: tr('Légendaires', 'Legendary'), sub: tr('fabuleux compris', 'mythicals included')},
+    shiny: {name: 'Shiny', sub: tr('toutes les éclosions', 'every hatch')},
+    new: {name: tr('Lignes nouvelles', 'New lines'), sub: tr('moins de doublons = mieux', 'fewer duplicates = better')},
+    ditto: {name: DITTO_NAME, sub: tr('le déguisement à 1 sur 128', 'the 1 in 128 disguise')},
+    favorite: {name: tr('Coups de cœur', 'Favorites'), sub: <>{tr(`les ${FAV_TOP} lignées préférées des fans`, `the ${FAV_TOP} lines fans love most`) + ' · '}<button type="button" class="linkbtn" onClick={() => dialog.current!.showModal()}>{tr('voir la liste', 'see the list')}</button></>},
+  };
+  const m: Metric[] = criteria(hs).map(c => ({...c, ...named[c.key]}));
+  const score = Math.round(luckScore(m));
   const mood = LANG === 'fr' ? (score >= 65 ? 'plutôt gâté' : score >= 55 ? 'un peu au-dessus de la moyenne' : score > 45 ? 'pile dans la moyenne' : score > 35 ? 'un peu en dessous' : 'plutôt malchanceux')
     : score >= 65 ? 'pretty lucky' : score >= 55 ? 'a bit above average' : score > 45 ? 'right on average' : score > 35 ? 'a bit below average' : 'rather unlucky';
   const best = [...m].sort((a, b) => b.p - a.p)[0], worst = [...m].sort((a, b) => a.p - b.p)[0];
@@ -172,6 +151,14 @@ function Luck({hs}: {hs: Hatch[]}) {
         <p>{tr('Le pourcentage dit quelle part des dresseurs, avec exactement les mêmes chances que toi à chaque éclosion, aurait fait moins bien. 50 %, c\'est pile la moyenne.', 'The percentage tells what share of trainers, with exactly the same odds as you at every hatch, would have done worse. 50% is dead average.')}</p>
       </div>
       <div class="metrics">{m.map(x => <MetricRow key={x.name} x={x} />)}</div>
+    </section>
+    <section class="panel" aria-label={tr('Courbe de chance', 'Luck curve')}>
+      <div class="panel-head">
+        <h2>{tr('Ta chance au fil des éclosions', 'Your luck hatch after hatch')}</h2>
+        <p>{tr('Ton indice de chance tel qu\'il était après chaque éclosion. Il bouge beaucoup au début, puis se stabilise.', 'Your luck score as it stood after each hatch. It swings early on, then settles.')}</p>
+      </div>
+      {hs.length < 2 ? <span class="hint">{tr('Pas encore assez d\'éclosions pour tracer ta courbe.', 'Not enough hatches yet to draw your curve.')}</span>
+        : <Curve hs={hs} scores={luckAfterEach(hs)} />}
     </section>
     <section class="panel" aria-label={tr('Tirages improbables', 'Unlikely draws')}>
       <div class="panel-head">

@@ -43,3 +43,15 @@ dialog.favdlg{border:1px solid var(--line); border-radius:16px; background:var(-
   width:min(960px, calc(100vw - 32px)); max-height:calc(100vh - 64px); overflow:auto; box-shadow:var(--shadow);}
 dialog.favdlg::backdrop{background:rgba(0,0,0,.45);}
 .favdlg .dlg{padding:20px; display:flex; flex-direction:column; gap:14px;}
+.chart{position:relative;}
+.chart svg{display:block; width:100%; height:auto; overflow:visible;}
+.tip{position:absolute; pointer-events:none; opacity:0; transition:opacity .09s; background:var(--surface); border:1px solid var(--line);
+  border-radius:9px; padding:8px 11px; box-shadow:var(--shadow); font-size:12px; max-width:260px; z-index:5;}
+.tip b{display:block; font-size:12.5px; margin-bottom:2px;}
+.tip-poke{display:flex; align-items:center; gap:6px; font-weight:600;}
+.tip-poke img{width:40px; height:40px; image-rendering:pixelated; margin:-4px 0;}
+.tip .hint{display:block;}
+.tip::after{content:''; position:absolute; left:var(--arrow); width:10px; height:10px; background:var(--surface); border:solid var(--line);
+  transform:translateX(-50%) rotate(45deg);}
+.tip.above::after{bottom:-6px; border-width:0 1px 1px 0;}
+.tip.below::after{top:-6px; border-width:1px 0 0 1px;}
