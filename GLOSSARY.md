@@ -19,3 +19,7 @@ _Avoid_: duplicate
 **Complete line**:
 A line whose every final form the player has already collected, so growing another of it adds no species.
 _Avoid_: duplicate
+
+**Luck score**:
+A playful 0 to 100 summary of how lucky a player's hatches were: for each criterion, the share of trainers with exactly the same odds at every hatch who would have done worse, averaged over the criteria. 50 is dead average.
+_Avoid_: luck index, chance
