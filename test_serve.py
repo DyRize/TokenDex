@@ -236,6 +236,66 @@ class UsageTest(unittest.TestCase):
             self.assertEqual([p for p in providers if not re.search(rf'\b{re.escape(names.get(p, p))}\b', text)], [], readme)
 
 
+class EggPurchasesTest(unittest.TestCase):
+    def setUp(self):
+        importlib.reload(serve)
+        home = tempfile.TemporaryDirectory()
+        self.addCleanup(home.cleanup)
+        logs = os.path.join(home.name, 'Library/Logs')
+        os.makedirs(logs)
+        serve.LOG, serve.OLD_LOG = os.path.join(logs, 'PokeTokenBar.log'), os.path.join(logs, 'PokeTokenBar.old.log')
+        serve.EGG_PURCHASES = os.path.join(home.name, 'Library/Caches/TokenDex/egg-purchases.json')
+
+    def write_logs(self, old=None, current=None):
+        """The app's log and its old generation, as AppLog writes them: one `[ISO time] message` per line."""
+        for path, lines in ((serve.OLD_LOG, old), (serve.LOG, current)):
+            if lines is None:
+                if os.path.exists(path):
+                    os.remove(path)
+                continue
+            with open(path, 'w') as f:
+                f.writelines(f'[2026-10-0{day}T{time}Z] {message}\n' for day, time, message in lines)
+
+    def purchases(self):
+        return json.loads(serve.egg_purchases_body()[0])
+
+    def test_serves_each_purchase_with_its_next_hatch_and_nothing_else(self):
+        self.write_logs(old=[
+            (1, '08:00:00', 'hatch: base=10 rarity=common shiny=false forms=3 boost=false ditto=false'),
+            (1, '09:12:30', 'usage: claude_code=1200 total=1200'),
+            (2, '10:00:00', 'egg purchased: discarded active, tier=none'),
+        ], current=[
+            (2, '14:30:00', 'hatch: base=16 rarity=common shiny=false forms=3 boost=false ditto=false'),
+            (3, '07:00:00', 'egg purchased: discarded active, tier=rare'),
+            (3, '07:00:01', 'hatch: base index unavailable — REST fallback'),
+            (3, '11:00:00', 'hatch: rolled common below guaranteed rare — discarded, re-roll next tick'),
+            (3, '11:05:00', 'keychainInteractionNotAllowed for Claude Code-credentials'),
+            (3, '12:00:00', 'hatch: base=147 rarity=rare shiny=true forms=3 boost=false ditto=false'),
+            (4, '09:00:00', 'egg purchased: discarded active, tier=legendary'),
+            (4, '18:20:00', 'egg purchased: discarded active, tier=uncommon'),
+        ])
+        self.assertEqual(self.purchases(), [
+            {'at': '2026-10-02T10:00:00Z', 'tier': 'none', 'base': 16},
+            {'at': '2026-10-03T07:00:00Z', 'tier': 'rare', 'base': 147},
+            {'at': '2026-10-04T18:20:00Z', 'tier': 'uncommon', 'base': None},
+        ])
+
+    def test_keeps_a_purchase_the_log_rotated_away_and_fills_in_its_hatch(self):
+        self.write_logs(current=[(5, '10:00:00', 'egg purchased: discarded active, tier=uncommon')])
+        self.assertEqual(self.purchases(), [{'at': '2026-10-05T10:00:00Z', 'tier': 'uncommon', 'base': None}])
+        self.write_logs(old=[(5, '10:00:00', 'egg purchased: discarded active, tier=uncommon')],
+                        current=[(6, '02:00:00', 'hatch: base=111 rarity=uncommon shiny=false forms=3 boost=false ditto=false')])
+        self.assertEqual(self.purchases(), [{'at': '2026-10-05T10:00:00Z', 'tier': 'uncommon', 'base': 111}])
+        self.write_logs(old=[(7, '02:00:00', 'usage: claude_code=10 total=10')], current=[(8, '08:00:00', 'egg purchased: discarded active, tier=rare')])
+        self.assertEqual(self.purchases(), [{'at': '2026-10-05T10:00:00Z', 'tier': 'uncommon', 'base': 111},
+                                            {'at': '2026-10-08T08:00:00Z', 'tier': 'rare', 'base': None}])
+
+    def test_a_missing_or_unreadable_log_means_no_new_purchases(self):
+        self.assertEqual(self.purchases(), [])
+        os.makedirs(serve.LOG)
+        self.assertEqual(self.purchases(), [])
+
+
 class CommandTest(unittest.TestCase):
     def setUp(self):
         importlib.reload(serve)
@@ -245,6 +305,7 @@ class CommandTest(unittest.TestCase):
         serve.DIST = dist.name
         serve.prefetch_sprites = lambda: None
         self.calls = []
+        serve.egg_purchases_body = lambda: self.calls.append(('purchases',))
         patcher = mock.patch('webbrowser.open', side_effect=lambda url: self.calls.append(('open', url)))
         patcher.start()
         self.addCleanup(patcher.stop)
@@ -268,11 +329,11 @@ class CommandTest(unittest.TestCase):
     def test_open_waits_for_the_port_then_opens_the_browser(self):
         out = self.run_main('--open')
         self.assertEqual(out, 'TokenDex on http://127.0.0.1:8649\n')
-        self.assertEqual(self.calls, [('listen', ('127.0.0.1', 8649)), ('open', 'http://127.0.0.1:8649'), ('serve',)])
+        self.assertEqual(self.calls, [('listen', ('127.0.0.1', 8649)), ('open', 'http://127.0.0.1:8649'), ('purchases',), ('serve',)])
 
-    def test_without_open_it_only_serves(self):
+    def test_without_open_it_reads_the_egg_purchases_then_serves(self):
         self.run_main()
-        self.assertEqual(self.calls, [('listen', ('127.0.0.1', 8649)), ('serve',)])
+        self.assertEqual(self.calls, [('listen', ('127.0.0.1', 8649)), ('purchases',), ('serve',)])
 
     def test_a_busy_port_opens_the_browser_and_says_so_instead_of_a_traceback(self):
         with socket.socket() as taken:

@@ -2,6 +2,7 @@
 import {LINE_ROWS} from '../../data/lines';
 import {NAMES} from '../../data/species';
 import type {Rarity, State} from '../../lib/save';
+import {CEIL, type Egg} from '../prochains/draw';
 
 interface Line { id: number; name: string; cr: number; leg: boolean; evo: boolean; rarity: Rarity; votes: number; rank: number; heart: boolean }
 /* Fans' favourites: a line gathers the votes of its members along one evolution path (Charmander, Charmeleon and
@@ -13,6 +14,9 @@ export const LINES: Line[] = LINE_ROWS.map(([id, cr, leg, evo, votes]) => ({id, 
 [...LINES].sort((a, b) => b.votes - a.votes).forEach((l, i) => { l.rank = i + 1; l.heart = i < FAV_TOP; });
 export const BY_ID = new Map(LINES.map(l => [l.id, l]));
 export const DITTO = 132;
+const EGGS: Egg[] = ['none', 'uncommon', 'rare'];
+/** The eggs whose draw holds this line. Ditto only hatches disguised as a common. */
+export const possibleEggs = (base: number) => base === DITTO ? ['none' as const] : EGGS.filter(egg => (BY_ID.get(base)?.cr ?? CEIL.none) <= CEIL[egg]);
 
 // Exact distribution of a sum of independent Bernoulli(p_i).
 function addTrial(dist: number[], p: number) {
@@ -29,20 +33,27 @@ function luck(d: number[], obs: number, higherIsBetter: boolean) {
 }
 
 interface Entry { base: number; rarity: Rarity; shiny: boolean; released?: boolean; finalName?: string; form?: string | null; active: boolean }
+export type EggSource = 'log' | 'player';
+/** The type of each bought egg the log or the player gives, by hatch number. */
+export type KnownEggs = Map<number, {egg: Egg; from: EggSource}>;
 export interface Hatch {
-  n: number; e: Entry; ditto: boolean; purchased: boolean; pLine: number; pLeg: number; pUnc: number; pRare: number; pDup: number; pFav: number; pDitto: number;
+  n: number; e: Entry; ditto: boolean; purchased: boolean;
+  /** The egg drawn: 'none' for a free egg, null for a bought egg of unknown type. */
+  egg: Egg | null; eggFrom: EggSource | 'unknown' | null; pLine: number; pLeg: number; pUnc: number; pRare: number; pDup: number; pFav: number; pDitto: number;
   shinyP: number; isDup: boolean; rare: boolean; leg: boolean; unc: boolean; fav: boolean;
 }
-export function replay(st: State, charm: boolean, charmFrom: number) {
+export function replay(st: State, charm: boolean, charmFrom: number, known: KnownEggs = new Map()) {
   const collected = new Set<number>();
   const hatches: Hatch[] = [];
   const entries: Entry[] = st.dex.map(d => ({base: d.baseID, rarity: d.rarity, shiny: d.isShiny, released: !!d.releasedAt, finalName: NAMES[d.finalID - 1], form: d.unownForm, active: false}));
   if (st.active) entries.push({base: st.active.baseID, rarity: st.active.rarity, shiny: st.active.isShiny, active: true});
   let prevReleased = false;
   entries.forEach((e, i) => {
+    const bought = prevReleased ? known.get(i + 1) : undefined, egg = prevReleased ? bought?.egg ?? null : 'none', ceil = CEIL[egg ?? 'none'];
     let total = 0, wLeg = 0, wRare = 0, wUnc = 0, wDup = 0, wEvoCommon = 0, wFav = 0;
     const w = (l: Line) => collected.has(l.id) ? Math.max(1, Math.floor(l.cr / 2)) : l.cr;
     for (const l of LINES) {
+      if (l.cr > ceil) continue;
       const x = w(l); total += x;
       if (l.leg) wLeg += x; else if (l.rarity === 'rare') wRare += x; else if (l.rarity === 'uncommon') wUnc += x;
       if (collected.has(l.id)) wDup += x;
@@ -53,8 +64,8 @@ export function replay(st: State, charm: boolean, charmFrom: number) {
     const ditto = e.base === DITTO;
     const line = BY_ID.get(e.base);
     hatches.push({
-      n: i + 1, e, ditto, purchased: prevReleased,
-      pLine: ditto ? pDitto : line ? w(line) / total : 0,
+      n: i + 1, e, ditto, purchased: prevReleased, egg, eggFrom: prevReleased ? bought?.from ?? 'unknown' : null,
+      pLine: ditto ? pDitto : line && line.cr <= ceil ? w(line) / total : 0,
       pLeg: wLeg / total, pUnc: wUnc / total, pRare: wRare / total, pDup: wDup / total, pFav: wFav / total, pDitto,
       shinyP: charm && i + 1 >= charmFrom ? 1 / 48 : 1 / 64,
       isDup: !ditto && collected.has(e.base),
@@ -70,16 +81,16 @@ export function replay(st: State, charm: boolean, charmFrom: number) {
 }
 
 export type CriterionKey = 'uncommon' | 'rare' | 'legendary' | 'shiny' | 'new' | 'ditto' | 'favorite';
-// The save does not keep a bought egg's type, so bought eggs only count for shiny.
-const free = (h: Hatch) => !h.purchased;
+// A bought egg of unknown type only counts for shiny: its draw is unknown.
+const known = (h: Hatch) => h.egg !== null;
 const CRITERIA: {key: CriterionKey; counts: (h: Hatch) => boolean; odds: (h: Hatch) => number; hit: (h: Hatch) => boolean; up: boolean}[] = [
-  {key: 'uncommon', counts: free, odds: h => h.pUnc, hit: h => h.unc, up: true},
-  {key: 'rare', counts: free, odds: h => h.pRare, hit: h => h.rare, up: true},
-  {key: 'legendary', counts: free, odds: h => h.pLeg, hit: h => h.leg, up: true},
+  {key: 'uncommon', counts: known, odds: h => h.pUnc, hit: h => h.unc, up: true},
+  {key: 'rare', counts: known, odds: h => h.pRare, hit: h => h.rare, up: true},
+  {key: 'legendary', counts: known, odds: h => h.pLeg, hit: h => h.leg, up: true},
   {key: 'shiny', counts: () => true, odds: h => h.shinyP, hit: h => h.e.shiny, up: true},
-  {key: 'new', counts: h => free(h) && !h.ditto, odds: h => h.pDup, hit: h => h.isDup, up: false},
-  {key: 'ditto', counts: free, odds: h => h.pDitto, hit: h => h.ditto, up: true},
-  {key: 'favorite', counts: free, odds: h => h.pFav, hit: h => h.fav, up: true},
+  {key: 'new', counts: h => known(h) && !h.ditto, odds: h => h.pDup, hit: h => h.isDup, up: false},
+  {key: 'ditto', counts: known, odds: h => h.pDitto, hit: h => h.ditto, up: true},
+  {key: 'favorite', counts: known, odds: h => h.pFav, hit: h => h.fav, up: true},
 ];
 
 export interface Criterion { key: CriterionKey; obs: number; paid: number; exp: number; p: number }

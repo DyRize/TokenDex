@@ -3,7 +3,7 @@ name: sample-save
 description: Opens a TokenDex page in agent-browser on a made-up save from samples/. Use when checking a change in the running app, or taking a screenshot for a PR.
 ---
 
-Run the dev server (`npm run dev`, http://127.0.0.1:5173) and `serve.py` first: the page still takes its sprites and history from `serve.py`, while the script routes `save.json` to the sample, so the real save never reaches the page or a screenshot.
+Run the dev server (`npm run dev`, http://127.0.0.1:5173) and `serve.py` first: the page still takes its sprites and history from `serve.py`, while the script routes `save.json` to the sample and `egg-purchases.json` to `samples/<sample>.purchases.json` (none if missing), so neither the real save nor the app's log reaches the page or a screenshot.
 
 ```sh
 .claude/skills/sample-save/open.sh <page> <sample> [fr|en] ['{"<localStorage key>": <value>}']

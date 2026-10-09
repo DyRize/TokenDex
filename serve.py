@@ -7,6 +7,8 @@ Live data, read from the app on every request:
   /usage.json     tokens per local hour from every store the app counts, and which providers that covers
                   (counts only, no prompts or model names)
   /settings.json  the growth and shop sliders of the app
+  /egg-purchases.json  each egg bought, from the app's log: when, which egg, and the base of the hatch that followed
+                       (kept on disk, since the log only keeps a couple of weeks)
 
 Trainer avatars, relayed from Pokémon Showdown and cached on disk so pages can draw them into an image:
   /trainers.json        every trainer sprite name
@@ -44,6 +46,9 @@ APP_DIR = os.path.join(HOME, 'Library/Application Support/PokeTokenBar')
 SAVE = os.path.join(APP_DIR, 'companion-state.json')
 USAGE = os.path.join(APP_DIR, 'usage-cache.json')
 CURSOR_API = os.path.join(APP_DIR, 'cursor-usage-api-cache.json')
+LOG = os.path.join(HOME, 'Library/Logs/PokeTokenBar.log')
+OLD_LOG = os.path.join(HOME, 'Library/Logs/PokeTokenBar.old.log')
+LOG_LINE = re.compile(r'\[(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ)\] (?:egg purchased: discarded active, tier=(none|uncommon|rare)$|hatch: base=(\d+) )')
 DOMAIN = 'io.github.chattymin.poketokenbar'
 PREFS = os.path.join(HOME, 'Library/Preferences', DOMAIN + '.plist')
 APPLE_EPOCH = 978307200
@@ -56,13 +61,14 @@ URL = f'http://127.0.0.1:{PORT}'
 # A site can point its own domain at 127.0.0.1 (DNS rebinding) and read these files as same-origin.
 # Its requests still carry that domain in Host, so only the local names are served.
 HOSTS = {f'127.0.0.1:{PORT}', f'localhost:{PORT}'}
-LIVE = {'/save.json', '/usage.json', '/settings.json'}
+LIVE = {'/save.json', '/usage.json', '/settings.json', '/egg-purchases.json'}
 TRAINERS_URL = 'https://play.pokemonshowdown.com/sprites/trainers/'
 TRAINERS_DIR = os.path.expanduser('~/Library/Caches/TokenDex/trainers')
 TRAINER_NAME = re.compile(r'^[a-z0-9-]{1,48}$')
 SPRITES_URL = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/'
 SPRITES_DIR = os.path.expanduser('~/Library/Caches/TokenDex/sprites')
 SPRITE_PATH = re.compile(r'^(pokemon/(versions/generation-v/black-white/(animated/)?(shiny/)?)?[a-z0-9-]{1,32}\.(png|gif)|items/[a-z0-9-]{1,48}\.png)$')
+EGG_PURCHASES = os.path.expanduser('~/Library/Caches/TokenDex/egg-purchases.json')
 USER_AGENT = 'TokenDex (local)'
 
 _usage = {}
@@ -785,6 +791,41 @@ def settings_body():
     return json.dumps({'growth': read('growthDifficulty'), 'shop': read('shopDifficulty')}).encode(), time.time()
 
 
+def logged_purchases():
+    """Each egg purchase in the app's log, oldest first, with the base of the next hatch once the log has it."""
+    found, waiting = [], []
+    for path in (OLD_LOG, LOG):
+        try:
+            with open(path, errors='replace') as f:
+                lines = f.readlines()
+        except OSError:
+            continue
+        for line in lines:
+            m = LOG_LINE.match(line.rstrip('\n'))
+            if m and m[2]:
+                waiting.append({'at': m[1], 'tier': m[2], 'base': None})
+                found.append(waiting[-1])
+            elif m:
+                for p in waiting:
+                    p['base'] = int(m[3])
+                waiting = []
+    return found
+
+
+def egg_purchases_body():
+    """Every egg purchase seen in the app's log since the first run."""
+    try:
+        with open(EGG_PURCHASES) as f:
+            kept = {p['at']: p for p in json.load(f)}
+    except (OSError, ValueError):
+        kept = {}
+    purchases = {**kept, **{p['at']: p for p in logged_purchases()}}
+    body = json.dumps(sorted(purchases.values(), key=lambda p: p['at'])).encode()
+    if purchases != kept:
+        write_file(EGG_PURCHASES, body)
+    return body, time.time()
+
+
 def fetch(url):
     request = urllib.request.Request(url, headers={'User-Agent': USER_AGENT})
     with urllib.request.urlopen(request, timeout=15) as r:
@@ -800,12 +841,16 @@ def cached(path, build, max_age=None):
     except OSError:
         pass
     body = build()
+    write_file(path, body)
+    return body, time.time()
+
+
+def write_file(path, body):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     tmp = f'{path}.{threading.get_ident()}.tmp'
     with open(tmp, 'wb') as f:
         f.write(body)
     os.replace(tmp, path)
-    return body, time.time()
 
 
 def trainers_body():
@@ -859,7 +904,8 @@ class Handler(SimpleHTTPRequestHandler):
         if path not in LIVE:
             return super().do_GET()
         try:
-            body, mtime = {'/save.json': save_body, '/usage.json': usage_body, '/settings.json': settings_body}[path]()
+            body, mtime = {'/save.json': save_body, '/usage.json': usage_body, '/settings.json': settings_body,
+                           '/egg-purchases.json': egg_purchases_body}[path]()
         except (OSError, ValueError, KeyError):
             return self.send_error(404, f'{path} unavailable')
         self.send_response(200)
@@ -942,6 +988,10 @@ def main(argv):
     if '--open' in argv:
         webbrowser.open(URL)
     threading.Thread(target=prefetch_sprites, daemon=True).start()
+    try:
+        egg_purchases_body()
+    except OSError:
+        pass
     try:
         server.serve_forever()
     except KeyboardInterrupt:
