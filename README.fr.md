@@ -56,7 +56,7 @@ Après un `git pull`, relance `npm install && npm run build`. Si macOS propose d
 
 `npm run dev` sert les pages sur http://127.0.0.1:5173 et les recharge à chaque modification. Laisse `serve.py` tourner à côté : c'est lui qui fournit la sauvegarde et l'historique, le serveur de dev les lui demande. `npm run typecheck` vérifie les types, `npm run build` refait `dist/`.
 
-`samples/` contient des sauvegardes inventées pour les cas qu'une vraie sauvegarde montre rarement : doublons, formes de Zarbi, Pokémon relâché, 150 éclosions avec des œufs achetés et le Charme Chroma. Pour en voir une, arrête `serve.py` et charge-la depuis l'accueil ; elle reste jusqu'à ce que `serve.py` serve de nouveau la sauvegarde de l'app. Ce sont aussi elles qu'on montre en capture d'écran, puisqu'une vraie sauvegarde montre la collection de quelqu'un.
+`samples/` contient des sauvegardes inventées pour les cas qu'une vraie sauvegarde montre rarement : doublons, formes de Zarbi, Pokémon relâché, 150 éclosions avec des œufs achetés et le Charme Chroma, des œufs achetés de chaque sorte avec les achats que donnerait le journal de l'app (`bought-eggs.purchases.json`). Pour en voir une, arrête `serve.py` et charge-la depuis l'accueil ; elle reste jusqu'à ce que `serve.py` serve de nouveau la sauvegarde de l'app. Ce sont aussi elles qu'on montre en capture d'écran, puisqu'une vraie sauvegarde montre la collection de quelqu'un.
 
 Pour développer, il faut Node 24 (`nvm use` le prend dans `.nvmrc`) : `npm test` lance les tests (Vitest, puis ceux de `serve.py`), `npm run lint` le lint (Oxlint, avec les règles qui ont besoin des types via tsgo). Pour seulement lancer l'app, Node 20.19 suffit.
 
@@ -69,5 +69,6 @@ Il n'écoute que sur ta machine (`127.0.0.1`), ne répond qu'aux adresses `127.0
 - `~/Library/Application Support/PokeTokenBar/companion-state.json` : ta sauvegarde.
 - Ton historique de tokens, là où l'app le prend : ses propres caches dans ce même dossier (Claude Code, Codex, Gemini, Grok, Pi, OMP, et l'usage de Cursor par son API), et les fichiers locaux d'Antigravity, OpenCode, Hermes, Cursor, Copilot, Kiro et Aside, à leurs emplacements par défaut et dans les dossiers ajoutés dans les réglages de l'app. Il n'en garde que le total par heure : ni prompts, ni projets, ni noms de modèles. Si un outil que l'app compte n'est pas lisible, les pages le signalent.
 - Dans les réglages de l'app : les curseurs Croissance et Boutique et ces dossiers ajoutés, rien d'autre.
+- Dans le journal de l'app (`~/Library/Logs/PokeTokenBar.log` et `PokeTokenBar.old.log`) : seulement les achats d'œufs, avec leur moment, l'œuf acheté et ce qui a éclos ensuite, pour que la page Chance connaisse le type de chaque œuf acheté. Le journal ne remonte qu'à deux semaines environ : le serveur garde donc les achats qu'il a vus dans `~/Library/Caches/TokenDex`. Lance-le au moins une fois toutes les deux semaines pour n'en manquer aucun.
 
 Aucune de tes données ne quitte ton Mac. Le serveur télécharge les sprites de Pokémon depuis GitHub (PokeAPI) et ceux des dresseurs de la page Carte depuis Pokémon Showdown, une seule fois : il les garde en cache dans `~/Library/Caches/TokenDex`.

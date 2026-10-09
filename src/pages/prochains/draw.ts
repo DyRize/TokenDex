@@ -1,5 +1,7 @@
 // The draw of the next egg (CompanionStore.chooseBase). Pure, so it runs in tests without the page.
 export type Egg = 'none' | 'uncommon' | 'rare';
+// The highest capture_rate an egg can draw (Rarity.captureRateCeiling).
+export const CEIL: Record<Egg, number> = {none: 255, uncommon: 120, rare: 45};
 type Drawn = {id: number; cr: number};
 
 export const weight = (l: Drawn, collected: Set<number>) => collected.has(l.id) ? Math.max(1, Math.floor(l.cr / 2)) : Math.max(1, l.cr);

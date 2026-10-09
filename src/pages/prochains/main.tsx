@@ -10,7 +10,7 @@ import {useSave, useSettings} from '../../lib/hooks';
 import {LANG, LOCALE, tr} from '../../lib/i18n';
 import {storeSettings, type Rarity, type Settings, type State} from '../../lib/save';
 import {bwSprite} from '../../lib/sprites';
-import {nextEgg, weight, type Egg} from './draw';
+import {CEIL, nextEgg, weight, type Egg} from './draw';
 
 interface Line { id: number; name: string; cr: number; leg: boolean; rarity: Rarity }
 const LINES: Line[] = LINE_ROWS.map(([id, cr, leg]) => ({
@@ -19,10 +19,10 @@ const LINES: Line[] = LINE_ROWS.map(([id, cr, leg]) => ({
 }));
 const BY_ID = new Map(LINES.map(l => [l.id, l]));
 const RARITIES = Object.keys(RLABEL) as Rarity[];
-const EGGS: Record<Egg, {label: string; ceil: number; price: number}> = {
-  none: {label: tr('Œuf normal', 'Normal Egg'), ceil: 255, price: PRICE.egg},
-  uncommon: {label: tr('Œuf Peu commun+', 'Uncommon+ Egg'), ceil: 120, price: PRICE.uncommonEgg},
-  rare: {label: tr('Œuf Rare+', 'Rare+ Egg'), ceil: 45, price: PRICE.rareEgg},
+const EGGS: Record<Egg, {label: string; price: number}> = {
+  none: {label: tr('Œuf normal', 'Normal Egg'), price: PRICE.egg},
+  uncommon: {label: tr('Œuf Peu commun+', 'Uncommon+ Egg'), price: PRICE.uncommonEgg},
+  rare: {label: tr('Œuf Rare+', 'Rare+ Egg'), price: PRICE.rareEgg},
 };
 const isEgg = (k: string | null): k is Egg => k === 'none' || k === 'uncommon' || k === 'rare';
 
@@ -125,7 +125,7 @@ function Odds({sv}: {sv: Sv}) {
   const [sort, setSort] = useState('p');
   const [rar, setRar] = useState(() => new Set(RARITIES));
   const egg = picked ?? (isEgg(sv.eggTier) ? sv.eggTier : 'none');
-  const {pool, p, collected} = useMemo(() => nextEgg(LINES, sv.collected, sv.active, egg, EGGS[egg].ceil), [sv, egg]);
+  const {pool, p, collected} = useMemo(() => nextEgg(LINES, sv.collected, sv.active, egg, CEIL[egg]), [sv, egg]);
   const h = useMemo(() => horizon(pool, collected, n, sv), [pool, collected, n, sv]);
   const s = shinyRate(sv), odds = sv.charm ? 48 : 64, act = sv.active ? BY_ID.get(sv.active) : undefined;
   const by = (r: Rarity) => pool.filter(l => l.rarity === r).reduce((a, l) => a + p.get(l.id)!, 0);
