@@ -7,6 +7,7 @@ import re
 import socket
 import sqlite3
 import tempfile
+import threading
 import time
 import unittest
 import zlib
@@ -290,6 +291,27 @@ class EggPurchasesTest(unittest.TestCase):
         self.assertEqual(self.purchases(), [{'at': '2026-10-05T10:00:00Z', 'tier': 'uncommon', 'base': 111},
                                             {'at': '2026-10-08T08:00:00Z', 'tier': 'rare', 'base': None}])
 
+    def test_reads_the_log_at_start_then_once_a_day_even_after_a_failed_read(self):
+        calls = []
+
+        class Stop(Exception):
+            pass
+
+        def read():
+            calls.append('read')
+            if len(calls) == 1:
+                raise OSError
+
+        def sleep(seconds):
+            calls.append(seconds)
+            if len(calls) == 4:
+                raise Stop
+
+        serve.egg_purchases_body = read
+        with mock.patch('time.sleep', sleep), self.assertRaises(Stop):
+            serve.watch_egg_purchases()
+        self.assertEqual(calls, ['read', 86400, 'read', 86400])
+
     def test_a_missing_or_unreadable_log_means_no_new_purchases(self):
         self.assertEqual(self.purchases(), [])
         os.makedirs(serve.LOG)
@@ -305,7 +327,8 @@ class CommandTest(unittest.TestCase):
         serve.DIST = dist.name
         serve.prefetch_sprites = lambda: None
         self.calls = []
-        serve.egg_purchases_body = lambda: self.calls.append(('purchases',))
+        self.watched = threading.Event()
+        serve.watch_egg_purchases = self.watched.set
         patcher = mock.patch('webbrowser.open', side_effect=lambda url: self.calls.append(('open', url)))
         patcher.start()
         self.addCleanup(patcher.stop)
@@ -329,11 +352,15 @@ class CommandTest(unittest.TestCase):
     def test_open_waits_for_the_port_then_opens_the_browser(self):
         out = self.run_main('--open')
         self.assertEqual(out, 'TokenDex on http://127.0.0.1:8649\n')
-        self.assertEqual(self.calls, [('listen', ('127.0.0.1', 8649)), ('open', 'http://127.0.0.1:8649'), ('purchases',), ('serve',)])
+        self.assertEqual(self.calls, [('listen', ('127.0.0.1', 8649)), ('open', 'http://127.0.0.1:8649'), ('serve',)])
 
-    def test_without_open_it_reads_the_egg_purchases_then_serves(self):
+    def test_without_open_it_only_serves(self):
         self.run_main()
-        self.assertEqual(self.calls, [('listen', ('127.0.0.1', 8649)), ('purchases',), ('serve',)])
+        self.assertEqual(self.calls, [('listen', ('127.0.0.1', 8649)), ('serve',)])
+
+    def test_it_watches_the_log_for_egg_purchases_while_it_serves(self):
+        self.run_main()
+        self.assertTrue(self.watched.wait(1))
 
     def test_a_busy_port_opens_the_browser_and_says_so_instead_of_a_traceback(self):
         with socket.socket() as taken:

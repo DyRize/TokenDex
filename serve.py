@@ -826,6 +826,16 @@ def egg_purchases_body():
     return body, time.time()
 
 
+def watch_egg_purchases():
+    """Reads the app's log for egg purchases now, then once a day."""
+    while True:
+        try:
+            egg_purchases_body()
+        except OSError:
+            pass
+        time.sleep(86400)
+
+
 def fetch(url):
     request = urllib.request.Request(url, headers={'User-Agent': USER_AGENT})
     with urllib.request.urlopen(request, timeout=15) as r:
@@ -988,10 +998,7 @@ def main(argv):
     if '--open' in argv:
         webbrowser.open(URL)
     threading.Thread(target=prefetch_sprites, daemon=True).start()
-    try:
-        egg_purchases_body()
-    except OSError:
-        pass
+    threading.Thread(target=watch_egg_purchases, daemon=True).start()
     try:
         server.serve_forever()
     except KeyboardInterrupt:
