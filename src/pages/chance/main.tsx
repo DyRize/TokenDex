@@ -9,7 +9,7 @@ import {LANG, LOCALE, tr} from '../../lib/i18n';
 import {bwSprite, spriteID, withForm} from '../../lib/sprites';
 import type {Egg} from '../prochains/draw';
 import {knownEggs, type Purchase} from './eggs';
-import {BY_ID, DITTO, FAV_TOP, LINES, criteria, luckAfterEach, luckScore, possibleEggs, replay, type Criterion, type CriterionKey, type Hatch} from './luck';
+import {BY_ID, DITTO, FAV_TOP, LINES, averageWait, criteria, hatchPace, luckAfterEach, luckEffects, luckScore, possibleEggs, replay, type Criterion, type CriterionKey, type Hatch, type OddsRange, type Wait} from './luck';
 
 const DITTO_NAME = NAMES[DITTO - 1];
 const CHARM_KEY = 'poketokenbar-charm-from-v1';
@@ -17,8 +17,25 @@ const EGGS_KEY = 'poketokenbar-bought-eggs-v1';
 const EGG_NAME: Record<Egg, string> = {none: tr('Œuf Pokémon', 'Pokémon Egg'), uncommon: tr('Œuf peu commun', 'Uncommon Egg'), rare: tr('Œuf rare', 'Rare Egg')};
 const nf = new Intl.NumberFormat(LOCALE);
 const num = (v: number, d = 1) => v.toLocaleString(LOCALE, {maximumFractionDigits: d});
-const oneIn = (p: number) => p > 0 ? tr('1 sur ', '1 in ') + nf.format(Math.round(1 / p)) : '–';
+const oneIn = (p: number) => tr('1 chance sur ', '1 chance in ') + nf.format(Math.round(1 / p));
 const pctTxt = (p: number) => Math.round(p * 100) + tr(' %', '%');
+const oddsPct = (p: number) => p < .001 ? '< ' + num(.1) : num(p * 100, p < .01 ? 1 : 0);
+const oddsTxt = ({low, high}: OddsRange) => {
+  const lo = oddsPct(low), hi = oddsPct(high);
+  return lo === hi ? lo + tr(' %', '%') : <span class="hint">{tr(`${lo} à ${hi} %`, `${lo} to ${hi}%`)}</span>;
+};
+const effectTxt = (v: number) => {
+  const r = Math.round(v * 10) / 10;
+  return <span class={r >= .5 ? 'effect up' : r <= -.5 ? 'effect down' : 'effect'}>{r.toLocaleString(LOCALE, {minimumFractionDigits: 1, maximumFractionDigits: 1, signDisplay: 'exceptZero'})}</span>;
+};
+const waitTxt = ({n, unit}: Wait) => {
+  const t = new Intl.NumberFormat(LOCALE, {style: 'unit', unit, unitDisplay: 'long'}).format(n);
+  return tr(`environ ${t} à ton rythme`, `about ${t} at your pace`);
+};
+const paceTxt = (pace: number) => {
+  const r = pace < 10 ? Math.round(pace * 10) / 10 : Math.round(pace);
+  return tr(`${num(r)} éclosion${r >= 2 ? 's' : ''} par semaine`, `${num(r)} hatch${r === 1 ? '' : 'es'} a week`);
+};
 
 const hatchName = (h: Hatch) => { const l = BY_ID.get(h.e.base); return h.ditto ? DITTO_NAME : l ? withForm(l.name, h.e.base, h.e.form) : '#' + h.e.base; };
 const hatchSprite = (h: Hatch) => bwSprite(h.ditto ? DITTO : spriteID(h.e.base, h.e.form));
@@ -127,7 +144,6 @@ type OnEgg = (n: number, egg: Egg | '') => void;
 function BoughtEgg({h, onEgg}: {h: Hatch; onEgg: OnEgg}) {
   return (
     <div class="egg">
-      {h.egg && oneIn(h.pLine)}
       {h.eggFrom === 'log' ? <span class="hint">{EGG_NAME[h.egg!]}</span>
         : <select aria-label={tr('Type de l\'œuf acheté', 'Type of the bought egg')} value={h.egg ?? ''} onChange={e => onEgg(h.n, e.currentTarget.value as Egg | '')}>
           <option value="">{tr('Œuf inconnu', 'Unknown egg')}</option>
@@ -137,7 +153,7 @@ function BoughtEgg({h, onEgg}: {h: Hatch; onEgg: OnEgg}) {
   );
 }
 
-function Luck({hs, onEgg}: {hs: Hatch[]; onEgg: OnEgg}) {
+function Luck({hs, pace, onEgg}: {hs: Hatch[]; pace: number | null; onEgg: OnEgg}) {
   const dialog = useRef<HTMLDialogElement>(null);
   const named: Record<CriterionKey, Pick<Metric, 'name' | 'sub'>> = {
     uncommon: {name: tr('Peu communs', 'Uncommon')},
@@ -153,6 +169,7 @@ function Luck({hs, onEgg}: {hs: Hatch[]; onEgg: OnEgg}) {
   const mood = LANG === 'fr' ? (score >= 65 ? 'plutôt gâté' : score >= 55 ? 'un peu au-dessus de la moyenne' : score > 45 ? 'pile dans la moyenne' : score > 35 ? 'un peu en dessous' : 'plutôt malchanceux')
     : score >= 65 ? 'pretty lucky' : score >= 55 ? 'a bit above average' : score > 45 ? 'right on average' : score > 35 ? 'a bit below average' : 'rather unlucky';
   const best = [...m].sort((a, b) => b.p - a.p)[0], worst = [...m].sort((a, b) => a.p - b.p)[0];
+  const scores = luckAfterEach(hs), effects = luckEffects(scores);
   const tops = hs.filter(h => h.egg && h.pLine > 0).sort((a, b) => a.pLine - b.pLine).slice(0, 4);
   const had = new Set(hs.filter(h => !h.ditto).map(h => h.e.base));
   const hearts = LINES.filter(l => l.heart).sort((a, b) => a.rank - b.rank);
@@ -184,12 +201,13 @@ function Luck({hs, onEgg}: {hs: Hatch[]; onEgg: OnEgg}) {
         <p>{tr('Ton indice de chance tel qu\'il était après chaque éclosion. Il bouge beaucoup au début, puis se stabilise.', 'Your luck score as it stood after each hatch. It swings early on, then settles.')}</p>
       </div>
       {hs.length < 2 ? <span class="hint">{tr('Pas encore assez d\'éclosions pour tracer ta courbe.', 'Not enough hatches yet to draw your curve.')}</span>
-        : <Curve hs={hs} scores={luckAfterEach(hs)} />}
+        : <Curve hs={hs} scores={scores} />}
     </section>
     <section class="panel" aria-label={tr('Tirages improbables', 'Unlikely draws')}>
       <div class="panel-head">
         <h2>{tr('Tes tirages les plus improbables', 'Your most unlikely draws')}</h2>
-        <p>{tr('La chance de tomber sur cette ligne précise, au moment où l\'œuf a été tiré.', 'The odds of drawing that exact line, at the moment the egg was drawn.')}</p>
+        <p>{tr('La chance de tomber sur cette ligne précise, au moment où l\'œuf a été tiré.', 'The odds of drawing that exact line, at the moment the egg was drawn.')
+          + (pace ? tr(` Et le temps qu'il te faudrait en moyenne pour la tirer, à ton rythme de ${paceTxt(pace)}.`, ` And how long drawing it would take you on average, at your pace of ${paceTxt(pace)}.`) : '')}</p>
       </div>
       <div class="tops">
         {tops.length ? tops.map(h => (
@@ -198,6 +216,7 @@ function Luck({hs, onEgg}: {hs: Hatch[]; onEgg: OnEgg}) {
             <div style="min-width:0">
               <div class="t1">{hatchName(h)}{h.e.shiny && <> <span class="shiny">✦</span></>}</div>
               <div class="t2">{`${oneIn(h.pLine)} · ${tr('éclosion n°', 'hatch No.')} ${h.n}`}</div>
+              {pace && <div class="t2">{waitTxt(averageWait(h.pLine, pace))}</div>}
             </div>
           </div>
         )) : <span class="hint">{tr('Pas encore d\'éclosion.', 'No hatches yet.')}</span>}
@@ -206,13 +225,12 @@ function Luck({hs, onEgg}: {hs: Hatch[]; onEgg: OnEgg}) {
     <section class="panel" aria-label={tr('Historique', 'History')}>
       <div class="panel-head">
         <h2>{tr('Toutes tes éclosions', 'All your hatches')}</h2>
-        <p>{tr('« Chance de la ligne » = probabilité de tirer cette ligne précise. « Chance de rare » = ce que tu pouvais espérer à cette éclosion. Pour un œuf acheté dont le journal ne donne pas le type, choisis-le : il comptera alors dans tous les critères.', '“Line odds” = the probability of drawing that exact line. “Rare odds” = what you could expect at that hatch. For a bought egg whose type the log does not give, pick it: it then counts in every criterion.')}</p>
+        <p>{tr('Chaque pourcentage = la chance, au moment de l\'éclosion, de ce qui est arrivé : la rareté tirée, puis une ligne nouvelle ou un doublon. Une rareté peu probable, c\'est de la chance ; un doublon peu probable, de la malchance. « Sur ton indice » = de combien cette éclosion a fait bouger ton indice de chance. Pour un œuf acheté dont le journal ne donne pas le type, choisis-le : il comptera alors dans tous les critères.', 'Each percentage = the chance, at that hatch, of what happened: the rarity drawn, then a new line or a duplicate. An unlikely rarity is good luck; an unlikely duplicate, bad luck. “On your score” = how much that hatch moved your luck score. For a bought egg whose type the log does not give, pick it: it then counts in every criterion.')}</p>
       </div>
       <div class="scroller">
         <table class="list">
           <thead><tr>
-            <th class="num">{tr('N°', 'No.')}</th><th>Pokémon</th><th class="hide-sm">{tr('Rareté', 'Rarity')}</th>
-            <th class="num">{tr('Chance de la ligne', 'Line odds')}</th><th class="num hide-sm">{tr('Chance de rare', 'Rare odds')}</th><th class="hide-sm">{tr('Ligne', 'Line')}</th><th class="num">Shiny</th>
+            <th class="num">{tr('N°', 'No.')}</th><th>Pokémon</th><th class="hide-sm">{tr('Rareté', 'Rarity')}</th><th class="hide-sm">{tr('Ligne', 'Line')}</th><th class="num">{tr('Sur ton indice', 'On your score')}</th><th class="num">Shiny</th>
           </tr></thead>
           <tbody>
             {[...hs].reverse().map(h => {
@@ -225,11 +243,10 @@ function Luck({hs, onEgg}: {hs: Hatch[]; onEgg: OnEgg}) {
                     {h.fav && <> <span class="fav" title={tr('Coup de cœur des fans', 'Fans\' favorite')}>♥</span></>}
                     {h.e.finalName && h.e.finalName !== nm && <> <span class="hint">{`→ ${h.e.finalName}`}</span></>}
                   </div></td>
-                  <td class="hide-sm"><RarityTag rarity={h.ditto ? 'rare' : l ? l.rarity : h.e.rarity} /></td>
-                  <td class="num">{h.purchased ? <BoughtEgg h={h} onEgg={onEgg} /> : oneIn(h.pLine)}</td>
-                  <td class="num hide-sm">{h.egg ? pctTxt(h.pRare) : '–'}</td>
+                  <td class="hide-sm"><span class="odds"><RarityTag rarity={h.ditto ? 'rare' : l ? l.rarity : h.e.rarity} />{' · '}{oddsTxt(h.pRarity)}</span></td>
                   <td class="hide-sm">{h.e.active ? <span class="st cur">{tr('En cours', 'Growing')}</span> : h.ditto ? <span class="st">{tr('Déguisé', 'Disguised')}</span>
-                    : h.isDup ? <span class="st">{tr('Doublon', 'Duplicate')}</span> : <span class="st new">{tr('Nouvelle', 'New')}</span>}</td>
+                    : <span class="odds">{h.isDup ? <span class="st">{tr('Doublon', 'Duplicate')}</span> : <span class="st new">{tr('Nouvelle', 'New')}</span>}{' · '}{oddsTxt(h.pNovelty)}</span>}</td>
+                  <td class="num">{effectTxt(effects[h.n - 1])}{h.purchased && <BoughtEgg h={h} onEgg={onEgg} />}</td>
                   <td class="num">{h.e.shiny && <span class="shiny">✦</span>}</td>
                 </tr>
               );
@@ -276,6 +293,7 @@ function App() {
   const [chosen, setChosen] = useState(storedEggs);
   const charm = !!save && (save.st.inventory.shinyCharm || 0) > 0;
   const hs = useMemo(() => save && replay(save.st, charm, charmFrom, knownEggs(save.st, purchases || [], chosen)), [save, charm, charmFrom, purchases, chosen]);
+  const pace = save && hatchPace(save.st, save.at);
   const onCharm = (e: Event) => {
     const v = Math.max(1, Math.floor(+(e.currentTarget as HTMLInputElement).value || 1));
     try { localStorage.setItem(CHARM_KEY, String(v)); } catch {}
@@ -307,7 +325,7 @@ function App() {
           </label>
         )}
       </section>
-      {hs && <Luck hs={hs} onEgg={onEgg} />}
+      {hs && <Luck hs={hs} pace={pace} onEgg={onEgg} />}
       <footer>
         {tr(<>
           <p>Règles reprises de l'app : 328 lignes de base jusqu'au #649, poids = <code>capture_rate</code>, divisé par deux quand la ligne a déjà été graduée. Métamorph : 1 chance sur 128 sur un commun qui évolue. Shiny : 1/64, 1/48 avec le Charme Chroma. Le percentile est calculé exactement (loi de Poisson-binomiale), avec demi-poids sur l'égalité. Seule approximation : les chances par ligne, doublon et coup de cœur négligent le déguisement de Métamorph, qui retire au plus 1/128 (0,8 %) à un commun qui évolue.</p>
