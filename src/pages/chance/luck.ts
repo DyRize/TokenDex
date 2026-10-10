@@ -36,24 +36,25 @@ interface Entry { base: number; rarity: Rarity; shiny: boolean; released?: boole
 export type EggSource = 'log' | 'player';
 /** The type of each bought egg the log or the player gives, by hatch number. */
 export type KnownEggs = Map<number, {egg: Egg; from: EggSource}>;
+export type OddsRange = {low: number; high: number};
 export interface Hatch {
   n: number; e: Entry; ditto: boolean; purchased: boolean;
   /** The egg drawn: 'none' for a free egg, null for a bought egg of unknown type. */
   egg: Egg | null; eggFrom: EggSource | 'unknown' | null; pLine: number; pLeg: number; pUnc: number; pRare: number; pDup: number; pFav: number; pDitto: number;
+  pCommon: number; pRarity: OddsRange; pNovelty: OddsRange;
   shinyP: number; isDup: boolean; rare: boolean; leg: boolean; unc: boolean; fav: boolean;
 }
+const RARITY_ODDS = {common: 'pCommon', uncommon: 'pUnc', rare: 'pRare', legendary: 'pLeg'} as const;
 export function replay(st: State, charm: boolean, charmFrom: number, known: KnownEggs = new Map()) {
   const collected = new Set<number>();
   const hatches: Hatch[] = [];
   const entries: Entry[] = st.dex.map(d => ({base: d.baseID, rarity: d.rarity, shiny: d.isShiny, released: !!d.releasedAt, finalName: NAMES[d.finalID - 1], form: d.unownForm, active: false}));
   if (st.active) entries.push({base: st.active.baseID, rarity: st.active.rarity, shiny: st.active.isShiny, active: true});
-  let prevReleased = false;
-  entries.forEach((e, i) => {
-    const bought = prevReleased ? known.get(i + 1) : undefined, egg = prevReleased ? bought?.egg ?? null : 'none', ceil = CEIL[egg ?? 'none'];
+  const w = (l: Line) => collected.has(l.id) ? Math.max(1, Math.floor(l.cr / 2)) : l.cr;
+  const draw = (egg: Egg) => {
     let total = 0, wLeg = 0, wRare = 0, wUnc = 0, wDup = 0, wEvoCommon = 0, wFav = 0;
-    const w = (l: Line) => collected.has(l.id) ? Math.max(1, Math.floor(l.cr / 2)) : l.cr;
     for (const l of LINES) {
-      if (l.cr > ceil) continue;
+      if (l.cr > CEIL[egg]) continue;
       const x = w(l); total += x;
       if (l.leg) wLeg += x; else if (l.rarity === 'rare') wRare += x; else if (l.rarity === 'uncommon') wUnc += x;
       if (collected.has(l.id)) wDup += x;
@@ -61,14 +62,24 @@ export function replay(st: State, charm: boolean, charmFrom: number, known: Know
       if (l.rarity === 'common' && l.evo) wEvoCommon += x;
     }
     const pDitto = wEvoCommon / total / 128;
+    return {total, pLeg: wLeg / total, pUnc: wUnc / total, pRare: wRare / total, pDup: wDup / total, pFav: wFav / total, pDitto,
+      pCommon: (total - wLeg - wRare - wUnc) / total - pDitto};
+  };
+  let prevReleased = false;
+  entries.forEach((e, i) => {
+    const bought = prevReleased ? known.get(i + 1) : undefined, egg = prevReleased ? bought?.egg ?? null : 'none', ceil = CEIL[egg ?? 'none'];
+    const {total, ...odds} = draw(egg ?? 'none');
     const ditto = e.base === DITTO;
     const line = BY_ID.get(e.base);
+    const outcome = ditto ? 'pDitto' : RARITY_ODDS[line?.rarity ?? e.rarity], isDup = !ditto && collected.has(e.base);
+    const draws = egg ? [odds] : possibleEggs(e.base).map(draw);
+    const range = (f: (o: typeof odds) => number) => { const ps = draws.map(f); return {low: Math.min(...ps), high: Math.max(...ps)}; };
     hatches.push({
       n: i + 1, e, ditto, purchased: prevReleased, egg, eggFrom: prevReleased ? bought?.from ?? 'unknown' : null,
-      pLine: ditto ? pDitto : line && line.cr <= ceil ? w(line) / total : 0,
-      pLeg: wLeg / total, pUnc: wUnc / total, pRare: wRare / total, pDup: wDup / total, pFav: wFav / total, pDitto,
+      pLine: ditto ? odds.pDitto : line && line.cr <= ceil ? w(line) / total : 0,
+      ...odds, pRarity: range(o => o[outcome]), pNovelty: range(o => isDup ? o.pDup : 1 - o.pDup),
       shinyP: charm && i + 1 >= charmFrom ? 1 / 48 : 1 / 64,
-      isDup: !ditto && collected.has(e.base),
+      isDup,
       rare: !ditto && !!(line && line.rarity === 'rare'),
       leg: !!(line && line.leg),
       unc: !ditto && !!(line && line.rarity === 'uncommon'),
@@ -78,6 +89,21 @@ export function replay(st: State, charm: boolean, charmFrom: number, known: Know
     prevReleased = !!e.released;
   });
   return hatches;
+}
+
+const DAY = 864e5, WEEK = 7 * DAY, YEAR = 365.25 * DAY, MONTH = YEAR / 12;
+export function hatchPace(st: State, at: number) {
+  const dated = st.dex.flatMap(d => d.caughtAt === null ? [] : [d.caughtAt]);
+  if (dated.length < 2 || dated.at(-1)! - dated[0] < DAY) return null;
+  return dated.length / ((at - dated[0]) / WEEK);
+}
+
+type WaitUnit = 'day' | 'week' | 'month' | 'year';
+export type Wait = {n: number; unit: WaitUnit};
+export function averageWait(p: number, pace: number): Wait {
+  const t = 1 / p / pace * WEEK;
+  const [unit, size]: [WaitUnit, number] = Math.round(t / DAY) < 14 ? ['day', DAY] : t < 3 * MONTH ? ['week', WEEK] : Math.round(t / MONTH) < 24 ? ['month', MONTH] : ['year', YEAR];
+  return {n: Math.max(1, Math.round(t / size)), unit};
 }
 
 export type CriterionKey = 'uncommon' | 'rare' | 'legendary' | 'shiny' | 'new' | 'ditto' | 'favorite';
@@ -110,3 +136,5 @@ export function luckAfterEach(hs: Hatch[]) {
     return luckScore(runs.map(r => ({p: luck(r.dist, r.obs, r.c.up)})));
   });
 }
+
+export const luckEffects = (scores: number[]) => scores.map((s, i) => s - (i ? scores[i - 1] : 50));
