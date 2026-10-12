@@ -23,3 +23,7 @@ _Avoid_: duplicate
 **Luck score**:
 A playful 0 to 100 summary of how lucky a player's hatches were: for each criterion, the share of trainers with exactly the same odds at every hatch who would have done worse, averaged over the criteria. 50 is dead average.
 _Avoid_: luck index, chance
+
+**Checked version**:
+A release of PokeTokenBar whose rules every figure of TokenDex was checked against. A save written by any other version may follow rules TokenDex does not reproduce.
+_Avoid_: supported version, compatible version, tested version
