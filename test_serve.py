@@ -1,8 +1,10 @@
 """usage.json against synthetic stores shaped like the ones PokeTokenBar v2.5.5 reads. Run: python3 -m unittest test_serve"""
+import http.client
 import importlib
 import io
 import json
 import os
+import plistlib
 import re
 import socket
 import sqlite3
@@ -11,6 +13,7 @@ import threading
 import time
 import unittest
 import zlib
+from functools import partial
 from unittest import mock
 
 import serve
@@ -316,6 +319,48 @@ class EggPurchasesTest(unittest.TestCase):
         self.assertEqual(self.purchases(), [])
         os.makedirs(serve.LOG)
         self.assertEqual(self.purchases(), [])
+
+
+class SaveTest(unittest.TestCase):
+    def setUp(self):
+        importlib.reload(serve)
+        home = tempfile.TemporaryDirectory()
+        self.addCleanup(home.cleanup)
+        serve.SAVE = os.path.join(home.name, 'companion-state.json')
+        with open(serve.SAVE, 'w') as f:
+            json.dump({'dex': [], 'collectedFinals': []}, f)
+        serve.APP_INFO = os.path.join(home.name, 'Applications/PokeTokenBar.app/Contents/Info.plist')
+        server = serve.Server(('127.0.0.1', 0), partial(serve.Handler, directory=home.name))
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        self.port = server.server_address[1]
+
+    def install(self, version=None, body=None):
+        """The app's bundle as the cask or a manual install leaves it in the Applications folder."""
+        os.makedirs(os.path.dirname(serve.APP_INFO), exist_ok=True)
+        with open(serve.APP_INFO, 'wb') as f:
+            f.write(body or plistlib.dumps({'CFBundleShortVersionString': version, 'CFBundleVersion': '1'}))
+
+    def get_save(self):
+        conn = http.client.HTTPConnection('127.0.0.1', self.port)
+        self.addCleanup(conn.close)
+        conn.request('GET', '/save.json', headers={'Host': serve.URL[len('http://'):]})
+        r = conn.getresponse()
+        return r.status, r.getheader('X-PokeTokenBar-Version'), json.loads(r.read())
+
+    def test_the_save_names_the_version_of_the_installed_app_read_on_every_request(self):
+        self.install('2.5.5')
+        self.assertEqual(self.get_save(), (200, '2.5.5', {'dex': [], 'collectedFinals': []}))
+        self.install('2.6.0')
+        self.assertEqual(self.get_save()[:2], (200, '2.6.0'))
+
+    def test_the_save_names_no_version_without_the_app_or_with_an_unreadable_bundle(self):
+        self.assertEqual(self.get_save(), (200, None, {'dex': [], 'collectedFinals': []}))
+        self.install(body=plistlib.dumps({'CFBundleShortVersionString': '2.6.0'})[:60])
+        self.assertEqual(self.get_save()[:2], (200, None))
+        self.install(body=b'not a plist')
+        self.assertEqual(self.get_save()[:2], (200, None))
 
 
 class CommandTest(unittest.TestCase):

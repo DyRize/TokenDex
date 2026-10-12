@@ -1,5 +1,5 @@
-import {describe, expect, it} from 'vitest';
-import {readSaveFile} from './save';
+import {afterEach, describe, expect, it, vi} from 'vitest';
+import {fetchServedSave, readSaveFile} from './save';
 
 const file = (v: unknown, lastModified = 1_790_000_000_000) => ({text: async () => JSON.stringify(v), lastModified});
 const state = {
@@ -22,14 +22,34 @@ describe('readSaveFile', () => {
     expect(st).toMatchObject({eggUsage: 0, pendingHatchID: null, eggTier: null, inventory: {rareCandy: 2}, usedSinceInstall: 100, spentTokens: 40});
   });
 
+  it("doesn't know which version of the app wrote a companion-state.json", async () => {
+    expect((await readSaveFile(file(state))).appVersion).toBeUndefined();
+  });
+
   it("reads an export, dated by its exportedAt", async () => {
     const {at, st} = await readSaveFile(file({format: 'poketokenbar.save', exportedAt: '2026-09-30T08:00:00Z', state}));
     expect(at).toBe(Date.UTC(2026, 8, 30, 8));
     expect(st.dex).toHaveLength(2);
   });
 
+  it('keeps the version of the app an export records', async () => {
+    const save = await readSaveFile(file({format: 'poketokenbar.save', appVersion: '2.5.4', exportedAt: '2026-09-30T08:00:00Z', state}));
+    expect(save.appVersion).toBe('2.5.4');
+  });
+
   it('rejects anything else', async () => {
     await expect(readSaveFile(file({dex: []}))).rejects.toThrow('not a PokeTokenBar save');
     await expect(readSaveFile({text: async () => '{', lastModified: 0})).rejects.toThrow(SyntaxError);
+  });
+});
+
+describe('fetchServedSave', () => {
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  it('carries the version of the app serve.py reports, or none', async () => {
+    vi.stubGlobal('fetch', async () => new Response(JSON.stringify(state), {headers: {'X-PokeTokenBar-Version': '2.6.0'}}));
+    expect((await fetchServedSave())!.appVersion).toBe('2.6.0');
+    vi.stubGlobal('fetch', async () => new Response(JSON.stringify(state)));
+    expect((await fetchServedSave())!.appVersion).toBeUndefined();
   });
 });

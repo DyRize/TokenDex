@@ -19,7 +19,7 @@ export function useSave(everyMs?: number) {
   useRefresh(async () => {
     const before = readStoredSave(), v = await fetchServedSave();
     setLive(!!v);
-    if (v && (!before || before.at !== v.at)) setSave(v);
+    if (v && (!before || before.at !== v.at || before.appVersion !== v.appVersion)) setSave(v);
   }, everyMs);
   // The home page, open in another tab, loads or forgets a save.
   useEffect(() => {

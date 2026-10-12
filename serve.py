@@ -3,7 +3,8 @@
 `--open` also opens them in the browser, or only that when TokenDex is already running.
 
 Live data, read from the app on every request:
-  /save.json      the app's companion-state.json
+  /save.json      the app's companion-state.json, with the version of the app in the Applications folder
+                  in X-PokeTokenBar-Version (left out when that app is missing or unreadable)
   /usage.json     tokens per local hour from every store the app counts, and which providers that covers
                   (counts only, no prompts or model names)
   /settings.json  the growth and shop sliders of the app
@@ -38,6 +39,7 @@ from contextlib import closing
 from email.utils import formatdate
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from xml.parsers.expat import ExpatError
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DIST = os.path.join(HERE, 'dist')
@@ -51,6 +53,8 @@ OLD_LOG = os.path.join(HOME, 'Library/Logs/PokeTokenBar.old.log')
 LOG_LINE = re.compile(r'\[(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ)\] (?:egg purchased: discarded active, tier=(none|uncommon|rare)$|hatch: base=(\d+) )')
 DOMAIN = 'io.github.chattymin.poketokenbar'
 PREFS = os.path.join(HOME, 'Library/Preferences', DOMAIN + '.plist')
+# Where both the Homebrew cask and the manual install put the app.
+APP_INFO = '/Applications/PokeTokenBar.app/Contents/Info.plist'
 APPLE_EPOCH = 978307200
 TOKEN_CAP = 10 ** 18
 ISO_TIME = re.compile(r'(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)(\.\d+)?(Z|[+-]\d\d:?\d\d)$')
@@ -896,6 +900,14 @@ def save_body():
         return f.read(), os.fstat(f.fileno()).st_mtime
 
 
+def app_version():
+    try:
+        with open(APP_INFO, 'rb') as f:
+            return plistlib.load(f).get('CFBundleShortVersionString')
+    except (OSError, ValueError, ExpatError):
+        return None
+
+
 class Handler(SimpleHTTPRequestHandler):
     def parse_request(self):
         if not super().parse_request():
@@ -923,6 +935,9 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_header('Content-Length', str(len(body)))
         self.send_header('Last-Modified', formatdate(mtime, usegmt=True))
         self.send_header('Cache-Control', 'no-store')
+        version = path == '/save.json' and app_version()
+        if version:
+            self.send_header('X-PokeTokenBar-Version', version)
         self.end_headers()
         self.wfile.write(body)
 

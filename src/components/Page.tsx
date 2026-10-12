@@ -6,6 +6,7 @@ import {feedbackURL} from '../lib/feedback';
 import {LANG, tr} from '../lib/i18n';
 import type {Save} from '../lib/save';
 import {EGG_SPRITE, bwSprite, spriteID} from '../lib/sprites';
+import {versionNotice} from '../lib/version';
 import {Nav, currentPage} from './Nav';
 import '@fontsource/nunito/latin-700.css';
 import '@fontsource/nunito/latin-800.css';
@@ -39,13 +40,18 @@ export const saveEyebrow = (save: Save | null) => save
 
 // The medallion shows the Pokémon growing right now, or the egg between two hatches.
 export function Header({eyebrow, title, lede, save}: {eyebrow: string; title: string; lede: ComponentChildren; save: Save | null}) {
-  const a = save && save.st.active;
+  const a = save && save.st.active, n = save && versionNotice(save.appVersion);
   return (
     <header>
       <div class={a ? 'mascot' : 'mascot egg'} aria-hidden="true">
         <img alt="" src={a ? bwSprite(spriteID(a.path[a.stage] || a.baseID, a.unownForm), {shiny: a.isShiny, animated: true}) : EGG_SPRITE} />
       </div>
       <span class="eyebrow">{eyebrow}</span>
+      {n && <p class="version-note">{n.kind === 'unchecked'
+        ? tr(`Ta sauvegarde vient de PokeTokenBar ${n.app}, une version que TokenDex n'a pas encore vérifiée (dernière vérifiée : ${n.lastChecked}). Certains chiffres peuvent être faux : mets TokenDex à jour si une version plus récente existe.`,
+          `Your save comes from PokeTokenBar ${n.app}, a version TokenDex hasn't been checked against yet (last checked: ${n.lastChecked}). Some figures may be wrong: update TokenDex if a newer version exists.`)
+        : tr(`Ta sauvegarde vient de PokeTokenBar ${n.app}, mais TokenDex suit les règles de la ${n.lastChecked} : mets l'app à jour pour des chiffres justes.`,
+          `Your save comes from PokeTokenBar ${n.app}, but TokenDex follows the rules of ${n.lastChecked}: update the app for exact figures.`)}</p>}
       <h1>{title}</h1>
       <p class="lede">{lede}</p>
     </header>
