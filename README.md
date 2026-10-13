@@ -62,6 +62,8 @@ Development needs Node 24 (`nvm use` picks it from `.nvmrc`): `npm test` runs th
 
 The version lives in `package.json`; while it carries a suffix (`0.1.0-alpha.1`), the menu shows an "alpha" badge.
 
+The versions of the app TokenDex was checked against live in `CHECKED_VERSIONS`, in `src/lib/version.ts`. When the app comes out in a new version, re-read the rules TokenDex reproduces against it: if nothing changed, add the version to the list; otherwise update the computations and replace the list. Then release TokenDex.
+
 ## What the server reads
 
 It only listens on your machine (`127.0.0.1`), only answers to `127.0.0.1:8649` and `localhost:8649` (so a website can't go through it to read your data), and only reads: it never writes to the files of the app or of your tools.
