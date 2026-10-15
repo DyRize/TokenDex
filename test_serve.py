@@ -38,6 +38,10 @@ def entry(id, t, input=0, output=0, cache_write=0, cache_read=0):
             'input': input, 'output': output, 'cacheWrite': cache_write, 'cacheRead': cache_read}
 
 
+def blob(*entries):
+    return {'mtime': 0, 'size': 0, 'entries': list(entries)}
+
+
 def vector(input, cached, output, total):
     return {'input': input, 'cachedInput': cached, 'cacheWriteInput': 0, 'output': output, 'reasoningOutput': 0, 'total': total}
 
@@ -100,9 +104,9 @@ class UsageTest(unittest.TestCase):
 
     def write_cache(self, **providers):
         """usage-cache.json as LocalUsageCache saves it: the Snapshot, raw-deflated like NSData's .zlib."""
-        snapshot = {'claude': {}, 'codex': {}, 'codexSessionIDs': {}, 'gemini': {}, 'grok': {}, 'pi': {}, 'omp': {},
+        snapshot = {'claude': {}, 'codex': {}, 'codexSessionIDs': {}, 'gemini': {}, 'grok': {}, 'pi': {}, 'omp': {}, 'kimi': {},
                     'claudeParserVersion': 1, 'codexParserVersion': 6, 'codexSessionIndexVersion': 2,
-                    'grokParserVersion': 2, 'piParserVersion': 3, 'ompParserVersion': 2}
+                    'grokParserVersion': 2, 'piParserVersion': 3, 'ompParserVersion': 2, 'kimiParserVersion': 1}
         snapshot.update(providers)
         deflate = zlib.compressobj(wbits=-15)
         with open(serve.USAGE, 'wb') as f:
@@ -112,12 +116,19 @@ class UsageTest(unittest.TestCase):
         return json.loads(serve.usage_body()[0])
 
     def test_claude_keeps_the_largest_copy_of_a_turn_at_its_earliest_time(self):
-        blob = lambda *entries: {'mtime': 0, 'size': 0, 'entries': list(entries)}
         self.write_cache(claude={
             '/p/a.jsonl': blob(entry('m1|r1', T1, input=10, output=5)),
             '/p/b.jsonl': blob(entry('m1|r1', T0, input=10, output=90), entry('m2|r2', T1, cache_read=7)),
         })
         self.assertEqual(self.usage()['hours'], {hour(T0): 100, hour(T1): 7})
+
+    def test_kimi_code_counts_from_the_cache_under_its_own_name(self):
+        self.write_cache(kimi={'/s/w/s1/agents/main/wire.jsonl': blob(entry('kimi|1|k3|turn|10|5|0|0', T0, input=10, output=5)),
+                               '/s/w/s2/agents/main/wire.jsonl': blob(entry('kimi|1|k3|turn|10|5|0|0', T0, input=10, output=5),
+                                                                      entry('kimi|2|k3|session|0|0|7|3', T1, cache_read=7, cache_write=3))})
+        with open(serve.SAVE, 'w') as f:
+            json.dump({'lastDate': time.strftime('%Y-%m-%d'), 'claimedTodayTokensByProvider': {'kimi_code': 10}}, f)
+        self.assertEqual(self.usage(), {'hours': {hour(T0): 15, hour(T1): 10}, 'sources': [{'id': 'kimi_code', 'counted': True}]})
 
     def test_codex_counts_a_fork_without_the_turns_it_replays_from_its_parent(self):
         c1, c2 = vector(100, 40, 10, 110), vector(250, 90, 30, 280)
@@ -232,7 +243,7 @@ class UsageTest(unittest.TestCase):
 
     def test_both_readmes_name_every_provider_read(self):
         names = {'claude_code': 'Claude Code', 'codex': 'Codex', 'gemini': 'Gemini', 'grok': 'Grok', 'pi': 'Pi', 'omp': 'OMP', 'antigravity': 'Antigravity',
-                 'opencode': 'OpenCode', 'hermes': 'Hermes', 'cursor': 'Cursor', 'copilot': 'Copilot', 'kiro': 'Kiro', 'aside': 'Aside'}
+                 'opencode': 'OpenCode', 'hermes': 'Hermes', 'cursor': 'Cursor', 'copilot': 'Copilot', 'kiro': 'Kiro', 'aside': 'Aside', 'kimi_code': 'Kimi Code'}
         providers = sorted({p for _, read, _ in serve.usage_sources() for p in read})
         for readme in ('README.md', 'README.fr.md'):
             with open(os.path.join(serve.HERE, readme)) as f:
