@@ -20,9 +20,10 @@ body:
       description: If a page crashed, paste the message it shows.
       render: text
   - type: input
-    id: app-version
+    id: app-commit
     attributes:
-      label: PokeTokenBar version
+      label: PokeTokenLBI commit
+      description: Shown in the app's Settings.
   - type: input
     id: browser
     attributes:

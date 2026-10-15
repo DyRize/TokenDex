@@ -170,7 +170,7 @@ function Front({st, card}: {st: State; card: Card}) {
       <div class="hero"><div class="medal"><img alt="" src={avatarURL(card.avatar)} /></div><b>{card.name || tr('Dresseur', 'Trainer')}</b></div>
     </div>
     <div class="rbar">{present.map(r => <i key={r} style={`--c:var(--r-${r}); flex:${n(r)}`} title={RPLURAL[r]}></i>)}</div>
-    <div class="foot"><span>{present.map(r => `${n(r)} ${(n(r) > 1 ? RPLURAL : RLABEL)[r]}`).join(' · ') || tr('Aucune graduation', 'No graduations')}</span><b>PokeTokenBar</b></div>
+    <div class="foot"><span>{present.map(r => `${n(r)} ${(n(r) > 1 ? RPLURAL : RLABEL)[r]}`).join(' · ') || tr('Aucune graduation', 'No graduations')}</span><b>PokeTokenLBI</b></div>
   </>;
 }
 

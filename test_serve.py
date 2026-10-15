@@ -1,4 +1,4 @@
-"""usage.json against synthetic stores shaped like the ones PokeTokenBar v2.5.5 reads. Run: python3 -m unittest test_serve"""
+"""usage.json against synthetic stores shaped like the ones PokeTokenLBI reads. Run: python3 -m unittest test_serve"""
 import http.client
 import importlib
 import io
@@ -354,38 +354,53 @@ class SaveTest(unittest.TestCase):
         serve.SAVE = os.path.join(home.name, 'companion-state.json')
         with open(serve.SAVE, 'w') as f:
             json.dump({'dex': [], 'collectedFinals': []}, f)
-        serve.APP_INFO = os.path.join(home.name, 'Applications/PokeTokenBar.app/Contents/Info.plist')
+        self.apps = os.path.join(home.name, 'Applications')
+        serve.APP_INFO = serve.APP_INFO.replace('/Applications', self.apps, 1)
         server = serve.Server(('127.0.0.1', 0), partial(serve.Handler, directory=home.name))
         threading.Thread(target=server.serve_forever, daemon=True).start()
         self.addCleanup(server.server_close)
         self.addCleanup(server.shutdown)
         self.port = server.server_address[1]
 
-    def install(self, version=None, body=None):
-        """The app's bundle as the cask or a manual install leaves it in the Applications folder."""
-        os.makedirs(os.path.dirname(serve.APP_INFO), exist_ok=True)
-        with open(serve.APP_INFO, 'wb') as f:
-            f.write(body or plistlib.dumps({'CFBundleShortVersionString': version, 'CFBundleVersion': '1'}))
+    def install(self, keys=None, body=None, app='PokeTokenLBI'):
+        """The app's bundle as its build script leaves it in the Applications folder, always reporting 2.5.5."""
+        info = os.path.join(self.apps, app + '.app/Contents/Info.plist')
+        os.makedirs(os.path.dirname(info), exist_ok=True)
+        with open(info, 'wb') as f:
+            f.write(body or plistlib.dumps({'CFBundleShortVersionString': '2.5.5', **(keys or {})}))
 
     def get_save(self):
         conn = http.client.HTTPConnection('127.0.0.1', self.port)
         self.addCleanup(conn.close)
         conn.request('GET', '/save.json', headers={'Host': serve.URL[len('http://'):]})
         r = conn.getresponse()
-        return r.status, r.getheader('X-PokeTokenBar-Version'), json.loads(r.read())
+        return r.status, r.getheader('X-PokeTokenLBI-Commit'), r.getheader('X-PokeTokenLBI-Commit-Date'), json.loads(r.read())
 
-    def test_the_save_names_the_version_of_the_installed_app_read_on_every_request(self):
-        self.install('2.5.5')
-        self.assertEqual(self.get_save(), (200, '2.5.5', {'dex': [], 'collectedFinals': []}))
-        self.install('2.6.0')
-        self.assertEqual(self.get_save()[:2], (200, '2.6.0'))
+    def test_the_save_names_the_commit_of_the_installed_app_and_its_date_read_on_every_request(self):
+        self.install({'PTBCommitSHA': 'a0ad485251b22a26971653dd49282d66758b462e', 'PTBCommitDate': '2026-10-15 10:32'})
+        self.assertEqual(self.get_save(), (200, 'a0ad485251b22a26971653dd49282d66758b462e', '2026-10-15 10:32', {'dex': [], 'collectedFinals': []}))
+        self.install({'PTBCommitSHA': 'dec94879726d866aed6fe065d6e6fcf2e993d3be', 'PTBCommitDate': '2026-10-15 11:46'})
+        self.assertEqual(self.get_save()[:3], (200, 'dec94879726d866aed6fe065d6e6fcf2e993d3be', '2026-10-15 11:46'))
 
-    def test_the_save_names_no_version_without_the_app_or_with_an_unreadable_bundle(self):
-        self.assertEqual(self.get_save(), (200, None, {'dex': [], 'collectedFinals': []}))
-        self.install(body=plistlib.dumps({'CFBundleShortVersionString': '2.6.0'})[:60])
-        self.assertEqual(self.get_save()[:2], (200, None))
+    def test_each_header_is_left_out_when_its_key_is_missing(self):
+        self.install({'PTBCommitSHA': 'a0ad485251b22a26971653dd49282d66758b462e'})
+        self.assertEqual(self.get_save()[:3], (200, 'a0ad485251b22a26971653dd49282d66758b462e', None))
+        self.install({'PTBCommitDate': '2026-10-15 10:32'})
+        self.assertEqual(self.get_save()[:3], (200, None, '2026-10-15 10:32'))
+        # What the build script writes outside a git clone, which the app's settings treat as no commit.
+        self.install({'PTBCommitSHA': 'unknown', 'PTBCommitDate': '2026-10-15 10:32'})
+        self.assertEqual(self.get_save()[:3], (200, None, '2026-10-15 10:32'))
+
+    def test_the_save_names_no_commit_without_the_app_or_with_an_unreadable_bundle(self):
+        self.assertEqual(self.get_save(), (200, None, None, {'dex': [], 'collectedFinals': []}))
+        self.install(body=plistlib.dumps({'PTBCommitSHA': 'a0ad485251b22a26971653dd49282d66758b462e'})[:60])
+        self.assertEqual(self.get_save()[:3], (200, None, None))
         self.install(body=b'not a plist')
-        self.assertEqual(self.get_save()[:2], (200, None))
+        self.assertEqual(self.get_save()[:3], (200, None, None))
+
+    def test_poketokenbar_app_is_no_longer_read(self):
+        self.install({'PTBCommitSHA': 'a0ad485251b22a26971653dd49282d66758b462e', 'PTBCommitDate': '2026-10-15 10:32'}, app='PokeTokenBar')
+        self.assertEqual(self.get_save()[:3], (200, None, None))
 
 
 class CommandTest(unittest.TestCase):
