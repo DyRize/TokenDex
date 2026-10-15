@@ -124,11 +124,11 @@ function Growing({st, g, hours, missing}: {st: State; g: number; hours: Hours | 
     <section class="panel" aria-label={tr('Pokémon en cours', 'Growing Pokémon')}>
       <div class="hero">
         <div class={a ? 'stage-sprite' : 'stage-sprite egg'}>
-          <img alt="" src={a ? bwSprite(spriteID(id, a.unownForm), {shiny: a.isShiny, animated: true}) : EGG_SPRITE} />
+          <img alt="" src={a ? bwSprite(spriteID(id, a.form), {shiny: a.isShiny, animated: true}) : EGG_SPRITE} />
         </div>
         <div>
           <div class="who">
-            <h2>{a ? withForm(NAMES[id - 1], id, a.unownForm) + (a.isShiny ? ' ✦' : '') : tr('Œuf', 'Egg')}</h2>
+            <h2>{a ? withForm(NAMES[id - 1], id, a.form) + (a.isShiny ? ' ✦' : '') : tr('Œuf', 'Egg')}</h2>
             {a && <RarityTag rarity={a.rarity} />}
           </div>
           <div class="big">

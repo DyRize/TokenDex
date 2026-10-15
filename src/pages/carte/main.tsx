@@ -114,7 +114,7 @@ interface Cand { id: string; sp: number; name: string; rarity: Rarity; shiny: bo
 function candidates(st: State): Cand[] {
   return st.dex.filter(d => d.id && !d.releasedAt).map(d => {
     const sp = d.chain.filter(id => id <= 649).pop() || d.finalID;
-    return {id: d.id!, sp, name: withForm(NAMES[sp - 1], sp, d.unownForm), rarity: d.rarity, shiny: d.isShiny, at: d.caughtAt || 0, form: d.unownForm};
+    return {id: d.id!, sp, name: withForm(NAMES[sp - 1], sp, d.form), rarity: d.rarity, shiny: d.isShiny, at: d.caughtAt || 0, form: d.form};
   });
 }
 const autoTeam = (cands: Cand[]) => cands.slice().sort((a, b) => (+b.shiny - +a.shiny) || (RANK[b.rarity] - RANK[a.rarity]) || (b.at - a.at)).slice(0, 6);
@@ -152,7 +152,7 @@ function Front({st, card}: {st: State; card: Card}) {
   for (const d of st.dex) for (const id of d.chain) if (id <= 649) got.add(id);
   const kept = st.dex.filter(d => !d.releasedAt && d.caughtAt).sort((a, b) => a.caughtAt! - b.caughtAt!), seen = new Set<number | string>();
   let dupes = 0;
-  for (const d of kept) { if (d.chain.every(id => seen.has(spriteID(id, d.unownForm)))) dupes++; d.chain.forEach(id => seen.add(spriteID(id, d.unownForm))); }
+  for (const d of kept) { if (d.chain.every(id => seen.has(spriteID(id, d.form)))) dupes++; d.chain.forEach(id => seen.add(spriteID(id, d.form))); }
   const first = kept[0] && kept[0].caughtAt;
   const rows: [string, string | number][] = [
     ...(card.showTokens ? [['Tokens', tok(st.usedSinceInstall)] as [string, string]] : []),

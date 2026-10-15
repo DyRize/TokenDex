@@ -1,20 +1,22 @@
 // The save shared by every page: served live by serve.py, or loaded from an export on the home page, and kept in this browser.
 import type {Commit} from './commit';
+import {lineForm} from './forms';
 
 export type Rarity = 'common' | 'uncommon' | 'rare' | 'legendary';
 
 /* companion-state.json as the app writes it, only the fields read here. Dates are Apple reference seconds. */
 interface AppDexEntry {
   id?: string; baseID: number; finalID: number; rarity: Rarity; isShiny?: boolean; releasedAt?: unknown;
-  chainOrder?: number[]; caughtAt?: number | string; unownForm?: string;
+  chainOrder?: number[]; caughtAt?: number | string; form?: unknown; unownForm?: unknown;
 }
 interface AppActive {
   baseID: number; rarity: Rarity; isShiny?: boolean; pathIDs?: number[]; stageIndex?: number; plannedPathIDs?: number[];
-  totalForms?: number; usedAtStage?: number; hasGrowthBoost?: boolean; unownForm?: string;
+  totalForms?: number; usedAtStage?: number; hasGrowthBoost?: boolean; form?: unknown; unownForm?: unknown;
   dittoDisguise?: number | null; dittoRevealed?: boolean;
 }
 interface AppState {
   dex: AppDexEntry[]; collectedFinals: string[]; active?: AppActive | null; eggUsage?: number; pendingHatchID?: number | null;
+  pendingForm?: unknown; pendingUnownForm?: unknown;
   eggTier?: string | null; inventory?: Record<string, number>; usedSinceInstall?: number; spentTokens?: number;
 }
 
@@ -22,23 +24,25 @@ interface AppState {
 export interface DexEntry {
   id?: string; baseID: number; finalID: number; rarity: Rarity; isShiny: boolean; releasedAt: 0 | 1;
   /** Species of the line this entry reached, base first. Missing in saves stored by old versions. */
-  chain: number[]; caughtAt: number | null; unownForm: string | null;
+  chain: number[]; caughtAt: number | null;
+  /** The individual's form, resolved for its line; null for a line without forms. */
+  form: string | null;
 }
 export interface Active {
   baseID: number; rarity: Rarity;
   /** As the app shows it: a disguised Ditto's shiny stays hidden until its reveal. */
   isShiny: boolean; path: number[]; stage: number; planned: number[];
-  forms: number; used: number; boost: boolean; unownForm: string | null;
+  forms: number; used: number; boost: boolean; form: string | null;
 }
 export interface State {
   collectedFinals: string[]; dex: DexEntry[]; active: Active | null; eggUsage: number;
-  pendingHatchID: number | null; eggTier: string | null; inventory: Record<string, number>;
+  pendingHatchID: number | null; pendingForm: string | null; eggTier: string | null; inventory: Record<string, number>;
   usedSinceInstall: number; spentTokens: number;
 }
 /** `commit`: the PokeTokenLBI build serving it; missing for a loaded file, and in saves stored by older TokenDex versions. */
 export interface Save { at: number; st: State; commit?: Commit }
 
-export const SAVE_KEY = 'poketokenbar-save-v2';
+export const SAVE_KEY = 'poketokenbar-save-v3';
 export function readStoredSave(): Save | null {
   try { const v = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); return v && v.st ? v : null; } catch { return null; }
 }
@@ -50,14 +54,16 @@ function compactState(st: AppState): State {
   return {
     collectedFinals: st.collectedFinals || [],
     dex: st.dex.map(d => ({id: d.id, baseID: d.baseID, finalID: d.finalID, rarity: d.rarity, isShiny: !!d.isShiny,
-      releasedAt: d.releasedAt ? 1 : 0, chain: d.chainOrder || [d.baseID], caughtAt: appleDate(d.caughtAt), unownForm: d.unownForm || null})),
+      releasedAt: d.releasedAt ? 1 : 0, chain: d.chainOrder || [d.baseID], caughtAt: appleDate(d.caughtAt), form: lineForm(d.baseID, d.form ?? d.unownForm)})),
     active: st.active ? {baseID: st.active.baseID, rarity: st.active.rarity,
       isShiny: !!st.active.isShiny && (st.active.dittoDisguise == null || !!st.active.dittoRevealed),
       path: st.active.pathIDs || [], stage: st.active.stageIndex || 0, planned: st.active.plannedPathIDs || st.active.pathIDs || [],
       forms: st.active.totalForms || 1, used: st.active.usedAtStage || 0, boost: !!st.active.hasGrowthBoost,
-      unownForm: st.active.unownForm || null} : null,
+      form: lineForm(st.active.baseID, st.active.form ?? st.active.unownForm)} : null,
     eggUsage: st.eggUsage || 0,
-    pendingHatchID: st.pendingHatchID ?? null, eggTier: st.eggTier ?? null,
+    pendingHatchID: st.pendingHatchID ?? null,
+    pendingForm: st.pendingHatchID == null ? null : lineForm(st.pendingHatchID, st.pendingForm ?? st.pendingUnownForm),
+    eggTier: st.eggTier ?? null,
     inventory: st.inventory || {}, usedSinceInstall: st.usedSinceInstall || 0, spentTokens: st.spentTokens || 0,
   };
 }

@@ -1,12 +1,13 @@
 import {describe, expect, it} from 'vitest';
 import duplicatesSave from '../../../samples/duplicates.json';
+import formsSave from '../../../samples/forms.json';
 import noDuplicatesSave from '../../../samples/no-duplicates.json';
 import {readSaveFile, type DexEntry} from '../../lib/save';
 import {captures, duplicatedSpecies} from './captures';
 
 const grad = (chain: number[], hour: number, more: Partial<DexEntry> = {}): DexEntry => ({
   baseID: chain[0], finalID: chain[chain.length - 1], rarity: 'common', isShiny: false, releasedAt: 0,
-  chain, caughtAt: Date.UTC(2026, 8, 1, hour), unownForm: null, ...more,
+  chain, caughtAt: Date.UTC(2026, 8, 1, hour), form: null, ...more,
 });
 const rows = (dex: DexEntry[]) => duplicatedSpecies(captures(dex, null));
 
@@ -27,10 +28,19 @@ describe('duplicatedSpecies', () => {
   });
 
   it('keeps each Unown form apart', () => {
-    const unown = (form: string, hour: number) => grad([201], hour, {unownForm: form});
+    const unown = (form: string, hour: number) => grad([201], hour, {form});
     expect(rows([unown('b', 1), unown('c', 2)])).toEqual([]);
     expect(rows([unown('b', 1), unown('c', 2), unown('b', 3), unown('c', 4)]))
       .toEqual([{finalId: 201, form: 'b', copies: 2}, {finalId: 201, form: 'c', copies: 2}]);
+  });
+
+  it('counts each form as its own species, at the species that show it', () => {
+    const shellos = (form: string, hour: number) => grad([422, 423], hour, {form});
+    expect(captures([shellos('west', 1), shellos('east', 2), shellos('west', 3)], null).map(c => c.dupe)).toEqual([false, false, true]);
+    expect(rows([shellos('west', 1), shellos('east', 2), shellos('west', 3)])).toEqual([{finalId: 423, form: 'west', copies: 2}]);
+    const burmy = (final: number, hour: number) => grad([412, final], hour, {form: 'sandy'});
+    expect(captures([burmy(413, 1), burmy(414, 2)], null).map(c => c.dupe)).toEqual([false, false]);
+    expect(captures([burmy(413, 1), grad([412, 414], 2, {form: 'plant'}), burmy(414, 3)], null).map(c => c.dupe)).toEqual([false, false, true]);
   });
 
   it('leaves out released Pokémon, which neither are duplicates, nor make one, nor count as copies', () => {
@@ -43,5 +53,6 @@ describe('duplicatedSpecies', () => {
     const dex = async (save: unknown) => (await readSaveFile({text: async () => JSON.stringify(save), lastModified: 0})).st.dex;
     expect(rows(await dex(duplicatesSave)).map(r => [r.finalId, r.form, r.copies])).toEqual([[3, null, 3], [134, null, 2], [201, 'b', 2]]);
     expect(rows(await dex(noDuplicatesSave))).toEqual([]);
+    expect(rows(await dex(formsSave)).map(r => [r.finalId, r.form, r.copies])).toEqual([[423, 'west', 2]]);
   });
 });
