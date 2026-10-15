@@ -22,6 +22,15 @@ describe('readSaveFile', () => {
     expect(st).toMatchObject({eggUsage: 0, pendingHatchID: null, eggTier: null, inventory: {rareCandy: 2}, usedSinceInstall: 100, spentTokens: 40});
   });
 
+  it("hides a disguised Ditto's shiny until its reveal, like the app", async () => {
+    const shiny = async (active: object) => (await readSaveFile(file({...state, active: {...state.active, isShiny: true, ...active}}))).st.active!.isShiny;
+    expect(await shiny({dittoDisguise: 7})).toBe(false);
+    expect(await shiny({dittoDisguise: 7, dittoRevealed: false})).toBe(false);
+    expect(await shiny({baseID: 132, dittoDisguise: 7, dittoRevealed: true})).toBe(true);
+    expect(await shiny({dittoDisguise: null})).toBe(true);
+    expect(await shiny({})).toBe(true);
+  });
+
   it("doesn't know which version of the app wrote a companion-state.json", async () => {
     expect((await readSaveFile(file(state))).appVersion).toBeUndefined();
   });
