@@ -58,7 +58,7 @@ APP_INFO = '/Applications/PokeTokenBar.app/Contents/Info.plist'
 APPLE_EPOCH = 978307200
 TOKEN_CAP = 10 ** 18
 ISO_TIME = re.compile(r'(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)(\.\d+)?(Z|[+-]\d\d:?\d\d)$')
-CACHED = ('claude_code', 'codex', 'gemini', 'grok', 'pi', 'omp')
+CACHED = ('claude_code', 'codex', 'gemini', 'grok', 'pi', 'omp', 'kimi_code')
 CODEX_VECTOR = ('input', 'cachedInput', 'cacheWriteInput', 'output', 'reasoningOutput', 'total')
 PORT = 8649
 URL = f'http://127.0.0.1:{PORT}'
@@ -324,7 +324,7 @@ def rows(path, sql):
 
 
 def cache_usage(paths):
-    """Claude Code, Codex, Gemini, Grok, pi and omp, as the app parsed them into its cache, file by file."""
+    """Claude Code, Codex, Gemini, Grok, pi, omp and Kimi Code, as the app parsed them into its cache, file by file."""
     with open(paths[0], 'rb') as f:
         raw = f.read()
     try:
@@ -337,7 +337,7 @@ def cache_usage(paths):
         return keep_max((e['id'], e['date'] + APPLE_EPOCH, tokens(e))
                         for path, blob in (cache.get(name) or {}).items() if counts(path) for e in blob.get('entries', []))
     return {'claude_code': entries('claude'), 'gemini': entries('gemini'), 'grok': entries('grok', grok_counts), 'pi': entries('pi'),
-            'omp': entries('omp', lambda path: 'bridge' not in path.split('/')),
+            'omp': entries('omp', lambda path: 'bridge' not in path.split('/')), 'kimi_code': entries('kimi'),
             'codex': codex_usage(blob['rollout'] for blob in (cache.get('codex') or {}).values())}
 
 
