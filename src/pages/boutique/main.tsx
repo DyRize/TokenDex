@@ -1,13 +1,14 @@
 import './page.css';
 import type {ComponentChildren} from 'preact';
 import {Header, NoSave, Tiles, mount, saveEyebrow} from '../../components/Page';
-import {FINALS, NAMES} from '../../data/species';
+import {FINALS} from '../../data/species';
 import {CANDY_XP, PRICE, scaled, toGraduation} from '../../lib/balance';
 import {tok} from '../../lib/format';
+import {formName, formSprite} from '../../lib/forms';
 import {useSave, useServed, useSettings} from '../../lib/hooks';
 import {tr} from '../../lib/i18n';
 import type {Settings, State} from '../../lib/save';
-import {EGG_SPRITE, bwSprite, itemSprite, spriteID, withForm} from '../../lib/sprites';
+import {EGG_SPRITE, itemSprite} from '../../lib/sprites';
 import {hourProfile, uncounted, type Usage} from '../../lib/usage';
 
 type Article = keyof typeof PRICE;
@@ -30,7 +31,7 @@ function Advisor({st, settings, perDay, missing}: {st: State; settings: Settings
   const known = new Set(st.dex.flatMap(d => d.chain)), knownShiny = new Set(st.dex.filter(d => d.isShiny).flatMap(d => d.chain));
   const newShiny = a && a.isShiny ? [...new Set(a.planned)].filter(id => id <= 649 && !knownShiny.has(id)).length : 0;
   const complete = a ? (FINALS[a.baseID] || [a.baseID]).every(f => collected.has(`${a.baseID}:${f}`)) : false;
-  const id = a ? a.path[a.stage] || a.baseID : 0, name = a ? withForm(NAMES[id - 1], id, a.form) : '';
+  const id = a ? a.path[a.stage] || a.baseID : 0, name = a ? formName(id, a.form) : '';
   const wait = (n: number) => { if (!perDay) return ''; const h = n / perDay * 24; return ` (≈ ${h < 48 ? Math.max(1, Math.round(h)) + ' h' : Math.round(h / 24) + tr(' jours', ' days')} ${tr('à ton rythme', 'at your pace')})`; };
   const acts: Act[] = [];
   let left = wallet, buyEgg = false;
@@ -38,7 +39,7 @@ function Advisor({st, settings, perDay, missing}: {st: State; settings: Settings
     acts.push(['wait', EGG_SPRITE, tr('Laisse éclore l\'œuf', 'Let the egg hatch'), tr('Pas de Pokémon actif : rien à relâcher, et les bonbons ne servent qu\'à un Pokémon qui grandit.', 'No active Pokémon: nothing to release, and Rare Candies only help a Pokémon that is growing.')]);
   } else if (complete && newShiny) {
     const s = newShiny > 1 ? 's' : '';
-    acts.push(['info', bwSprite(spriteID(id, a.form), {shiny: true}), tr(`Fais grandir ${name}`, `Grow ${name}`),
+    acts.push(['info', formSprite(id, a.form, {shiny: true}), tr(`Fais grandir ${name}`, `Grow ${name}`),
       tr(<>Sa ligne est complète, mais c'est un shiny qui t'apporte <b>{`${newShiny} espèce${s} shiny nouvelle${s}`}</b> : ne le relâche pas.</>,
         <>Its line is complete, but it is a shiny that brings you <b>{`${newShiny} new shiny species`}</b>: don't release it.</>)]);
   } else if (complete) {
@@ -55,9 +56,9 @@ function Advisor({st, settings, perDay, missing}: {st: State; settings: Settings
     }
   } else {
     const fresh = [...new Set(a.planned)].filter(id => !known.has(id)).length, s = fresh > 1 ? 's' : '';
-    acts.push(['info', bwSprite(spriteID(id, a.form), {shiny: a.isShiny}), tr(`Fais grandir ${name}`, `Grow ${name}`), fresh
+    acts.push(['info', formSprite(id, a.form, {shiny: a.isShiny}), tr(`Fais grandir ${name}`, `Grow ${name}`), fresh
       ? tr(<>Sa ligne t'apporte <b>{`${fresh} espèce${s} nouvelle${s}`}</b> : pas question de le relâcher.</>, <>Its line brings you <b>{`${fresh} new species`}</b>: don't release it.</>)
-      : tr('Sa ligne n\'est pas encore complète : une forme finale te manque encore.', 'Its line is not complete yet: you still miss a final form.')]);
+      : tr('Sa ligne n\'est pas encore complète : une évolution finale te manque encore.', 'Its line is not complete yet: you still miss a final evolution.')]);
   }
   const reserve = P.rareEgg, surplus = left - reserve, buy = Math.max(0, Math.floor(surplus / P.candy));
   if (buy > 0) {
@@ -131,11 +132,11 @@ function Advisor({st, settings, perDay, missing}: {st: State; settings: Settings
         {tr(<>
           <p>Le Chrono a simulé quatre façons de dépenser : sans boutique, tout en bonbons, Rare+ sur doublon, et Rare+ seulement en fin de partie. <b>Rare+ sur doublon</b> gagne à tous les réglages testés : aux réglages par défaut de l'app (100 % de croissance, 100 % de boutique, 253 M par jour), il finit les 649 espèces en 80 ans environ, contre 158 ans tout en bonbons et 184 ans sans boutique.</p>
           <p>L'idée : un Pokémon dont la ligne est déjà complète n'apporte plus rien au Pokédex. Plutôt que de le faire grandir, tu le relâches et tu achètes un œuf Rare+, qui ne tire que des lignes rares ou légendaires, celles qui manquent le plus longtemps. Pour pouvoir le faire à chaque doublon, tu gardes toujours le prix d'un Rare+ de côté, et tout ce qui dépasse part en bonbons.</p>
-          <p>Les bonbons, eux, se mettent sur le Pokémon en cours. L'XP en trop passe à la forme suivante quand il évolue, mais elle est perdue à la graduation : on n'en met donc jamais plus que ce qu'il lui reste.</p>
+          <p>Les bonbons, eux, se mettent sur le Pokémon en cours. L'XP en trop passe au stade suivant quand il évolue, mais elle est perdue à la graduation : on n'en met donc jamais plus que ce qu'il lui reste.</p>
         </>, <>
           <p>Chrono simulated four ways of spending: no shop, all in Rare Candies, Rare+ on duplicates, and Rare+ only in the endgame. <b>Rare+ on duplicates</b> wins at every setting tested: at the app's default settings (100% growth, 100% shop, 253 M a day), it finishes the 649 species in about 80 years, against 158 years all in Rare Candies and 184 years without the shop.</p>
           <p>The idea: a Pokémon whose line is already complete adds nothing to the Pokédex. Instead of growing it, you release it and buy a Rare+ Egg, which only draws rare or legendary lines, the ones missing the longest. To do that on every duplicate, you always keep the price of a Rare+ aside, and everything above it goes into Rare Candies.</p>
-          <p>Rare Candies go on the growing Pokémon. Extra XP carries over to the next form when it evolves, but is lost at graduation, so never give it more than it still needs.</p>
+          <p>Rare Candies go on the growing Pokémon. Extra XP carries over to the next stage when it evolves, but is lost at graduation, so never give it more than it still needs.</p>
         </>)}
       </div>
     </section>

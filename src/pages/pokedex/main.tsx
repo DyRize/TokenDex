@@ -269,10 +269,10 @@ function App() {
       {dex && <Grid dex={dex} unseen={unseen} onOpen={open} />}
       <footer>
         {tr(<>
-          <p>Une espèce compte comme obtenue dès qu'elle est dans ton Pokédex, c'est-à-dire dans la chaîne d'évolution d'un Pokémon gradué. Le Pokémon que tu fais grandir en ce moment est entouré en pointillés : ses formes déjà atteintes sont visibles, mais ne comptent qu'à la graduation. Les révélations déjà vues sont retenues par ce navigateur.</p>
+          <p>Une espèce compte comme obtenue dès qu'elle est dans ton Pokédex, c'est-à-dire dans la chaîne d'évolution d'un Pokémon gradué. Le Pokémon que tu fais grandir en ce moment est entouré en pointillés : ses stades déjà atteints sont visibles, mais ne comptent qu'à la graduation. Les révélations déjà vues sont retenues par ce navigateur.</p>
           <p>Sprites : PokeAPI/sprites, Noir &amp; Blanc (animés à la révélation). Noms : PokéAPI.</p>
         </>, <>
-          <p>A species counts as caught as soon as it is in your Pokédex, that is, in the evolution line of a graduated Pokémon. The Pokémon you're growing right now has a dotted outline: the forms it has reached are shown, but they only count once it graduates. Reveals you've already seen are remembered by this browser.</p>
+          <p>A species counts as caught as soon as it is in your Pokédex, that is, in the evolution line of a graduated Pokémon. The Pokémon you're growing right now has a dotted outline: the stages it has reached are shown, but they only count once it graduates. Reveals you've already seen are remembered by this browser.</p>
           <p>Sprites: PokeAPI/sprites, Black &amp; White (animated on reveal). Names: PokéAPI.</p>
         </>)}
       </footer>

@@ -2,12 +2,12 @@ import './page.css';
 import {useEffect, useMemo, useRef, useState} from 'preact/hooks';
 import {Header, NoSave, mount, saveEyebrow} from '../../components/Page';
 import {RLABEL} from '../../components/Rarity';
-import {NAMES} from '../../data/species';
 import {tok} from '../../lib/format';
+import {formName, formSprite} from '../../lib/forms';
 import {useSave, useServed} from '../../lib/hooks';
 import {LANG, LOCALE, tr} from '../../lib/i18n';
 import type {Rarity, State} from '../../lib/save';
-import {bwSprite, spriteID, withForm} from '../../lib/sprites';
+import {captures} from '../journal/captures';
 import {lead, move, replace, toggle} from './team';
 
 const RPLURAL: Record<Rarity, string> = LANG === 'fr' ? {common: 'Communs', uncommon: 'Peu communs', rare: 'Rares', legendary: 'Légendaires'} : RLABEL;
@@ -114,7 +114,7 @@ interface Cand { id: string; sp: number; name: string; rarity: Rarity; shiny: bo
 function candidates(st: State): Cand[] {
   return st.dex.filter(d => d.id && !d.releasedAt).map(d => {
     const sp = d.chain.filter(id => id <= 649).pop() || d.finalID;
-    return {id: d.id!, sp, name: withForm(NAMES[sp - 1], sp, d.form), rarity: d.rarity, shiny: d.isShiny, at: d.caughtAt || 0, form: d.form};
+    return {id: d.id!, sp, name: formName(sp, d.form), rarity: d.rarity, shiny: d.isShiny, at: d.caughtAt || 0, form: d.form};
   });
 }
 const autoTeam = (cands: Cand[]) => cands.slice().sort((a, b) => (+b.shiny - +a.shiny) || (RANK[b.rarity] - RANK[a.rarity]) || (b.at - a.at)).slice(0, 6);
@@ -150,9 +150,7 @@ const canShare = !!(navigator.canShare && navigator.canShare({files: [new File([
 function Front({st, card}: {st: State; card: Card}) {
   const got = new Set<number>();
   for (const d of st.dex) for (const id of d.chain) if (id <= 649) got.add(id);
-  const kept = st.dex.filter(d => !d.releasedAt && d.caughtAt).sort((a, b) => a.caughtAt! - b.caughtAt!), seen = new Set<number | string>();
-  let dupes = 0;
-  for (const d of kept) { if (d.chain.every(id => seen.has(spriteID(id, d.form)))) dupes++; d.chain.forEach(id => seen.add(spriteID(id, d.form))); }
+  const caps = captures(st.dex, null), kept = caps.map(c => c.d), dupes = caps.filter(c => c.dupe).length;
   const first = kept[0] && kept[0].caughtAt;
   const rows: [string, string | number][] = [
     ...(card.showTokens ? [['Tokens', tok(st.usedSinceInstall)] as [string, string]] : []),
@@ -240,7 +238,7 @@ function TeamBar({team, newcomer, onMove, onReplace}: {team: Cand[]; newcomer: C
               e.preventDefault(); refocusId.current = x.id; onMove(i, to);
             }}>
             {i === 0 && <span class="lead">{tr('Chef', 'Lead')}</span>}
-            <img alt="" src={bwSprite(spriteID(x.sp, x.form), {shiny: x.shiny})} /><span>{x.name}{x.shiny && <> <i class="sh">✦</i></>}</span>
+            <img alt="" src={formSprite(x.sp, x.form, {shiny: x.shiny})} /><span>{x.name}{x.shiny && <> <i class="sh">✦</i></>}</span>
           </div>
         );
       })}
@@ -288,7 +286,7 @@ function Picks({cands, team, newcomer, onToggle, onLead, onMove, onReplace}: {ca
         return (
           <div key={x.id} class={at ? 'pick on' : x === newcomer ? 'pick asking' : 'pick'}>
             <button type="button" class="pick-main" aria-pressed={!!at} title={`${x.name}${x.at ? tr(', capturé le ', ', caught on ') + fmtDate(x.at) : ''}`} onClick={() => onToggle(x.id)}>
-              <img alt="" src={bwSprite(spriteID(x.sp, x.form), {shiny: x.shiny})} /><span>{x.name}{x.shiny && <> <i class="sh">✦</i></>}</span><em>{at || ''}</em>
+              <img alt="" src={formSprite(x.sp, x.form, {shiny: x.shiny})} /><span>{x.name}{x.shiny && <> <i class="sh">✦</i></>}</span><em>{at || ''}</em>
             </button>
             {at && (
               <button type="button" class="pick-lead" aria-pressed={at === 1} aria-label={`${x.name} ${tr('en chef', 'as lead')}`}
@@ -386,7 +384,7 @@ function TrainerCard({st}: {st: State}) {
                   return (
                     <div key={i} class="slot" style={`--c:var(--r-${x.rarity})`}>
                       {i === 0 && <span class="lead">{tr('Chef', 'Lead')}</span>}{x.shiny && <span class="spark" aria-hidden="true">✦</span>}
-                      <img alt="" src={bwSprite(spriteID(x.sp, x.form), {shiny: x.shiny, animated: true})} /><b>{x.name}</b><small>{RLABEL[x.rarity]}</small>
+                      <img alt="" src={formSprite(x.sp, x.form, {shiny: x.shiny, animated: true})} /><b>{x.name}</b><small>{RLABEL[x.rarity]}</small>
                     </div>
                   );
                 })}
@@ -449,8 +447,8 @@ function App() {
         lede={tr('Ta carte de dresseur, tirée de ta sauvegarde, avec une équipe de six au dos : clique sur la carte pour la retourner. L\'équipe se remplit toute seule, ou tu la choisis plus bas.', 'Your trainer card, drawn from your save, with a team of six on the back: click the card to flip it. The team fills itself, or you pick it below.')} />
       {save ? <TrainerCard st={save.st} /> : <section class="panel"><NoSave /></section>}
       <footer>
-        <p>{tr('Pokédex : espèces obtenues jusqu\'au #649, relâchés compris, comme sur l\'accueil. Shiny, graduations et doublons ne comptent que les Pokémon encore là ; un doublon est une graduation dont toutes les espèces de la ligne étaient déjà dans le Pokédex. L\'équipe automatique prend les shiny d\'abord, puis les plus rares, puis les plus récents. Dès que tu touches à l\'équipe, elle passe en perso ; ton choix est gardé de côté quand tu repasses en automatique. Nom, numéro et équipe restent dans ce navigateur.',
-          'Pokédex: species caught up to #649, released ones included, like on the home page. Shiny, graduations and duplicates only count the Pokémon still there; a duplicate is a graduation whose whole line was already in the Pokédex. The automatic team takes shinies first, then the rarest, then the most recent. As soon as you touch the team it becomes custom; your pick is kept aside when you switch back to automatic. Name, number and team stay in this browser.')}</p>
+        <p>{tr('Pokédex : espèces obtenues jusqu\'au #649, relâchés compris, comme sur l\'accueil. Shiny, graduations et doublons ne comptent que les Pokémon encore là ; un doublon est une graduation dont toutes les espèces de la ligne étaient déjà dans le Pokédex, chaque forme d\'une espèce comptant comme une espèce à part. L\'équipe automatique prend les shiny d\'abord, puis les plus rares, puis les plus récents. Dès que tu touches à l\'équipe, elle passe en perso ; ton choix est gardé de côté quand tu repasses en automatique. Nom, numéro et équipe restent dans ce navigateur.',
+          'Pokédex: species caught up to #649, released ones included, like on the home page. Shiny, graduations and duplicates only count the Pokémon still there; a duplicate is a graduation whose whole line was already in the Pokédex, each form of a species counting as its own species. The automatic team takes shinies first, then the rarest, then the most recent. As soon as you touch the team it becomes custom; your pick is kept aside when you switch back to automatic. Name, number and team stay in this browser.')}</p>
       </footer>
     </div>
   );

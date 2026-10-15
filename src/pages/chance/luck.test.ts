@@ -1,6 +1,8 @@
 import {describe, expect, it} from 'vitest';
 import boughtEggsSave from '../../../samples/bought-eggs.json';
+import formsSave from '../../../samples/forms.json';
 import manyHatchesSave from '../../../samples/many-hatches.json';
+import {tr} from '../../lib/i18n';
 import {readSaveFile, type State} from '../../lib/save';
 import type {Egg} from '../prochains/draw';
 import {BY_ID, DITTO, averageWait, criteria, hatchPace, luckAfterEach, luckEffects, luckScore, possibleEggs, replay, type Hatch} from './luck';
@@ -86,6 +88,18 @@ describe('replay with bought eggs', () => {
     const rare = criteria(hs).find(c => c.key === 'rare')!, rareKnown = criteria(replay(st, false, 1, all)).find(c => c.key === 'rare')!;
     expect(rare.paid).toBeGreaterThan(0);
     expect(rareKnown.obs).toBe(rare.obs + rare.paid);
+  });
+});
+
+describe('replay with forms', () => {
+  it('gives each hatch its form, the growing one included, and names the final evolution with it', async () => {
+    const hs = replay(await state(formsSave), false, 1);
+    expect(hs.map(h => h.e.form)).toEqual([null, 'b', 'west', 'sandy', 'spring', 'k', 'exclamation', 'sky', 'east', 'sandy', 'fire', 'west', 'summer']);
+    expect(hs.map(h => h.e.finalName)).toEqual([
+      tr('Roucarnage', 'Pidgeot'), tr('Zarbi [B]', 'Unown [B]'), tr('Tritosor', 'Gastrodon'), tr('Cheniselle [Cape Sable]', 'Wormadam [Sandy Cloak]'),
+      tr('Haydaim', 'Sawsbuck'), tr('Zarbi [K]', 'Unown [K]'), tr('Zarbi [!]', 'Unown [!]'), tr('Shaymin [Forme Céleste]', 'Shaymin [Sky Forme]'),
+      tr('Tritosor [Mer Orient]', 'Gastrodon [East Sea]'), tr('Papilord', 'Mothim'), tr('Arceus [Feu]', 'Arceus [Fire Type]'), tr('Tritosor', 'Gastrodon'), undefined,
+    ]);
   });
 });
 

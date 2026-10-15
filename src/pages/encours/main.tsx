@@ -3,13 +3,13 @@ import type {ComponentChildren} from 'preact';
 import {useState} from 'preact/hooks';
 import {Header, NoSave, Tiles, mount, saveEyebrow, type TileData} from '../../components/Page';
 import {RarityTag} from '../../components/Rarity';
-import {NAMES} from '../../data/species';
 import {CANDY_XP, EGG_COST, scaled, stageCosts, toGraduation} from '../../lib/balance';
 import {tok} from '../../lib/format';
+import {formName, formSprite} from '../../lib/forms';
 import {useSave, useServed, useSettings} from '../../lib/hooks';
 import {LANG, LOCALE, tr} from '../../lib/i18n';
 import type {State} from '../../lib/save';
-import {EGG_SPRITE, bwSprite, spriteID, withForm} from '../../lib/sprites';
+import {EGG_SPRITE} from '../../lib/sprites';
 import {hourKey, hourProfile, uncounted, type Hours, type Usage} from '../../lib/usage';
 
 // Walks forward hour by hour, spending the usual amount for that hour, until `need` tokens are burnt.
@@ -78,7 +78,7 @@ function Rate({hours, prof, now}: {hours: Hours; prof: number[]; now: Date}) {
 function Growing({st, g, hours, missing}: {st: State; g: number; hours: Hours | null; missing: string[]}) {
   const a = st.active, now = new Date(), prof = hours && hourProfile(hours, now);
   const candies = st.inventory.rareCandy || 0;
-  const id = a ? a.path[a.stage] || a.baseID : 0, costs = a ? stageCosts(a, g) : [], names = a ? a.planned.map(id => NAMES[id - 1]) : [];
+  const id = a ? a.path[a.stage] || a.baseID : 0, costs = a ? stageCosts(a, g) : [], names = a ? a.planned.map(id => formName(id, a.form)) : [];
   const total = costs.reduce((x, y) => x + y, 0);
   const need = a ? toGraduation(a, g) : Math.max(0, scaled(EGG_COST, g) - st.eggUsage);
   const nextNeed = a && a.stage < costs.length - 1 ? costs[a.stage] - a.used : null;
@@ -88,7 +88,7 @@ function Growing({st, g, hours, missing}: {st: State; g: number; hours: Hours | 
     const free = Math.min(candies, Math.floor(need / CANDY_XP));
     tiles = [
       [tr('Avant graduation', 'Until graduation'), tok(need), `${tr('sur', 'of')} ${tok(total)}${a.boost ? tr(', ligne déjà graduée', ', line already graduated') : ''}`],
-      [tr('Prochaine évolution', 'Next evolution'), nextNeed == null ? tr('Forme finale', 'Final form') : tok(nextNeed), nextNeed == null ? tr('reste la graduation', 'graduation left') : `${tr('vers', 'into')} ${names[a.stage + 1] || '?'}`],
+      [tr('Prochaine évolution', 'Next evolution'), nextNeed == null ? tr('Évolution finale', 'Final evolution') : tok(nextNeed), nextNeed == null ? tr('reste la graduation', 'graduation left') : `${tr('vers', 'into')} ${names[a.stage + 1] || '?'}`],
       [tr('Tes bonbons', 'Your Rare Candies'), String(candies), !candies ? tr('aucun en stock', 'none in stock') : free ? tr(`${free} utilisable${free > 1 ? 's' : ''} sans perte`, `${free} usable without waste`) : tr('aucun sans perte, garde-les', 'none without waste, keep them')],
     ];
   }
@@ -124,11 +124,11 @@ function Growing({st, g, hours, missing}: {st: State; g: number; hours: Hours | 
     <section class="panel" aria-label={tr('Pokémon en cours', 'Growing Pokémon')}>
       <div class="hero">
         <div class={a ? 'stage-sprite' : 'stage-sprite egg'}>
-          <img alt="" src={a ? bwSprite(spriteID(id, a.form), {shiny: a.isShiny, animated: true}) : EGG_SPRITE} />
+          <img alt="" src={a ? formSprite(id, a.form, {shiny: a.isShiny, animated: true}) : EGG_SPRITE} />
         </div>
         <div>
           <div class="who">
-            <h2>{a ? withForm(NAMES[id - 1], id, a.form) + (a.isShiny ? ' ✦' : '') : tr('Œuf', 'Egg')}</h2>
+            <h2>{a ? formName(id, a.form) + (a.isShiny ? ' ✦' : '') : tr('Œuf', 'Egg')}</h2>
             {a && <RarityTag rarity={a.rarity} />}
           </div>
           <div class="big">
@@ -179,10 +179,10 @@ function App() {
       {save ? <Growing st={save.st} g={settings.g} hours={usage && usage.hours} missing={uncounted(usage)} /> : <section class="panel"><NoSave /></section>}
       <footer>
         {tr(<>
-          <p>Coûts repris de <code>PokemonBalance.phaseThreshold</code> : une ligne à k formes coûte T·i / (k(k+1)/2) pour la i-ème forme, T = 750 M, 1,875 Md, 3 Md ou 6 Md selon la rareté, divisé par deux sur une ligne déjà graduée, puis multiplié par ton curseur de croissance. Un bonbon vaut 100 M ; l'excédent passe à la forme suivante, mais il est perdu à la graduation.</p>
+          <p>Coûts repris de <code>PokemonBalance.phaseThreshold</code> : une ligne à k stades coûte T·i / (k(k+1)/2) pour le i-ème stade, T = 750 M, 1,875 Md, 3 Md ou 6 Md selon la rareté, divisé par deux sur une ligne déjà graduée, puis multiplié par ton curseur de croissance. Un bonbon vaut 100 M ; l'excédent passe au stade suivant, mais il est perdu à la graduation.</p>
           <p>L'estimation avance heure par heure en retirant ce que tu brûles d'habitude à cette heure-là (moyenne des 14 derniers jours). Elle demande le serveur local, qui lit l'historique de tokens de l'app.</p>
         </>, <>
-          <p>Costs taken from <code>PokemonBalance.phaseThreshold</code>: a line with k forms costs T·i / (k(k+1)/2) for its i-th form, with T = 750 M, 1.875 B, 3 B or 6 B depending on rarity, halved on a line that already graduated, then multiplied by your growth slider. A Rare Candy is worth 100 M; the surplus carries over to the next form, but is lost at graduation.</p>
+          <p>Costs taken from <code>PokemonBalance.phaseThreshold</code>: a line with k stages costs T·i / (k(k+1)/2) for its i-th stage, with T = 750 M, 1.875 B, 3 B or 6 B depending on rarity, halved on a line that already graduated, then multiplied by your growth slider. A Rare Candy is worth 100 M; the surplus carries over to the next stage, but is lost at graduation.</p>
           <p>The estimate moves forward hour by hour, taking off what you usually burn at that hour (average of the last 14 days). It needs the local server, which reads the app's token history.</p>
         </>)}
       </footer>

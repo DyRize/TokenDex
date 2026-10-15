@@ -6,7 +6,8 @@ import {RarityTag} from '../../components/Rarity';
 import {NAMES} from '../../data/species';
 import {useSave, useServed} from '../../lib/hooks';
 import {LANG, LOCALE, tr} from '../../lib/i18n';
-import {bwSprite, spriteID, withForm} from '../../lib/sprites';
+import {formName, formSprite} from '../../lib/forms';
+import {bwSprite} from '../../lib/sprites';
 import type {Egg} from '../prochains/draw';
 import {knownEggs, type Purchase} from './eggs';
 import {BY_ID, DITTO, FAV_TOP, LINES, averageWait, criteria, hatchPace, luckAfterEach, luckEffects, luckScore, possibleEggs, replay, type Criterion, type CriterionKey, type Hatch, type OddsRange, type Wait} from './luck';
@@ -37,8 +38,8 @@ const paceTxt = (pace: number) => {
   return tr(`${num(r)} éclosion${r >= 2 ? 's' : ''} par semaine`, `${num(r)} hatch${r === 1 ? '' : 'es'} a week`);
 };
 
-const hatchName = (h: Hatch) => { const l = BY_ID.get(h.e.base); return h.ditto ? DITTO_NAME : l ? withForm(l.name, h.e.base, h.e.form) : '#' + h.e.base; };
-const hatchSprite = (h: Hatch) => bwSprite(h.ditto ? DITTO : spriteID(h.e.base, h.e.form));
+const hatchName = (h: Hatch) => h.ditto ? DITTO_NAME : BY_ID.has(h.e.base) ? formName(h.e.base, h.e.form) : '#' + h.e.base;
+const hatchSprite = (h: Hatch) => h.ditto ? bwSprite(DITTO) : formSprite(h.e.base, h.e.form);
 
 interface Metric extends Criterion { name: string; sub?: ComponentChildren }
 const verdict = (p: number) => p >= .8 ? tr('très chanceux', 'very lucky') : p >= .6 ? tr('chanceux', 'lucky') : p > .4 ? tr('dans la moyenne', 'average') : p > .2 ? tr('malchanceux', 'unlucky') : tr('très malchanceux', 'very unlucky');
@@ -84,7 +85,7 @@ function saveTiles(hs: Hatch[], charm: boolean, charmFrom: number) {
   ];
   if (loved) {
     const l = BY_ID.get(loved.e.base)!;
-    tiles.push([tr('Plus beau tirage', 'Best draw'), loved.e.finalName || l.name,
+    tiles.push([tr('Plus beau tirage', 'Best draw'), loved.e.finalName || formName(l.id, loved.e.form),
       tr(`lignée ${l.name}, ${l.rank === 1 ? '1re' : l.rank + 'e'} sur ${LINES.length} chez les fans`, `${l.name} line, ranked ${l.rank} of ${LINES.length} by fans`)]);
   }
   return tiles;

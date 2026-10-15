@@ -5,7 +5,8 @@ import {fmtCommitDate, fmtSaveDate} from '../lib/format';
 import {feedbackURL} from '../lib/feedback';
 import {LANG, tr} from '../lib/i18n';
 import type {Save} from '../lib/save';
-import {EGG_SPRITE, bwSprite, spriteID} from '../lib/sprites';
+import {formSprite} from '../lib/forms';
+import {EGG_SPRITE} from '../lib/sprites';
 import {type CommitNotice, commitNotice} from '../lib/commit';
 import {Nav, currentPage} from './Nav';
 import '@fontsource/nunito/latin-700.css';
@@ -54,7 +55,7 @@ export function Header({eyebrow, title, lede, save}: {eyebrow: string; title: st
   return (
     <header>
       <div class={a ? 'mascot' : 'mascot egg'} aria-hidden="true">
-        <img alt="" src={a ? bwSprite(spriteID(a.path[a.stage] || a.baseID, a.form), {shiny: a.isShiny, animated: true}) : EGG_SPRITE} />
+        <img alt="" src={a ? formSprite(a.path[a.stage] || a.baseID, a.form, {shiny: a.isShiny, animated: true}) : EGG_SPRITE} />
       </div>
       <span class="eyebrow">{eyebrow}</span>
       {n && <p class="commit-note">{noticeText(n)}</p>}

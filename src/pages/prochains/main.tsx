@@ -6,6 +6,7 @@ import {LINE_ROWS} from '../../data/lines';
 import {NAMES} from '../../data/species';
 import {EGG_COST, GRAD, PRICE} from '../../lib/balance';
 import {tok} from '../../lib/format';
+import {formName} from '../../lib/forms';
 import {useSave, useSettings} from '../../lib/hooks';
 import {LANG, LOCALE, tr} from '../../lib/i18n';
 import {storeSettings, type Rarity, type Settings, type State} from '../../lib/save';
@@ -40,7 +41,7 @@ function mulberry32(a: number) {
 
 /* The save as this page reads it: lines by base species, and the settings the odds depend on. */
 interface Sv {
-  collected: number[]; shiny: number[]; active: number | null; pending: number | null; eggTier: string | null;
+  collected: number[]; shiny: number[]; active: number | null; pending: number | null; pendingForm: string | null; eggTier: string | null;
   charm: boolean; wallet: number; growth: number; shop: number;
 }
 function fromState(st: State, settings: Settings): Sv {
@@ -49,7 +50,7 @@ function fromState(st: State, settings: Settings): Sv {
     collected: [...new Set(finals.map(k => +k.split(':')[0]))],
     shiny: st.dex.filter(d => d.isShiny && !d.releasedAt && finalSet.has(`${d.baseID}:${d.finalID}`)).map(d => d.baseID),
     active: st.active ? st.active.baseID : null,
-    pending: st.pendingHatchID, eggTier: st.eggTier,
+    pending: st.pendingHatchID, pendingForm: st.pendingForm, eggTier: st.eggTier,
     charm: (st.inventory.shinyCharm || 0) > 0,
     wallet: Math.max(0, st.usedSinceInstall - st.spentTokens),
     growth: settings.g / 100, shop: settings.s / 100,
@@ -106,13 +107,13 @@ function SaveTiles({sv}: {sv: Sv}) {
   ]} />;
 }
 
-function Pending({line}: {line: Line}) {
+function Pending({line, form}: {line: Line; form: string | null}) {
   const [shown, setShown] = useState(false);
   return (
     <div class="note spoiler">
       <span>{tr(<>L'œuf en cours est <b>déjà tiré</b> : l'espèce est écrite dans ta sauvegarde.</>, <>The current egg is <b>already drawn</b>: the species is written in your save.</>)}</span>
       {!shown && <button type="button" class="btn" onClick={() => setShown(true)}>{tr('Révéler', 'Reveal')}</button>}
-      {shown && <span class="reveal">{`#${line.id} ${line.name} · ${RLABEL[line.rarity].toLowerCase()}`}</span>}
+      {shown && <span class="reveal">{`#${line.id} ${formName(line.id, form)} · ${RLABEL[line.rarity].toLowerCase()}`}</span>}
     </div>
   );
 }
@@ -262,7 +263,7 @@ function App() {
             <span class="hint">{tr('Tes réglages de l\'app : ils ne sont pas dans la sauvegarde, ils servent aux prix et à la croissance.', 'Your app settings: they are not in the save, they drive prices and growth.')}</span>
           </div>
         </>}
-        {pend && <Pending key={pend.id} line={pend} />}
+        {pend && <Pending key={pend.id} line={pend} form={sv!.pendingForm} />}
       </section>
       {sv && <Odds sv={sv} />}
       <footer>

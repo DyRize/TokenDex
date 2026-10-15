@@ -1,6 +1,7 @@
 // Every hatch replayed with the collection the player had at that moment, and how lucky the draws were.
 import {LINE_ROWS} from '../../data/lines';
 import {NAMES} from '../../data/species';
+import {formName} from '../../lib/forms';
 import type {Rarity, State} from '../../lib/save';
 import {CEIL, type Egg} from '../prochains/draw';
 
@@ -32,7 +33,7 @@ function luck(d: number[], obs: number, higherIsBetter: boolean) {
   return (higherIsBetter ? below : above) + eq / 2;
 }
 
-interface Entry { base: number; rarity: Rarity; shiny: boolean; released?: boolean; finalName?: string; form?: string | null; active: boolean }
+interface Entry { base: number; rarity: Rarity; shiny: boolean; released?: boolean; finalName?: string; form: string | null; active: boolean }
 export type EggSource = 'log' | 'player';
 /** The type of each bought egg the log or the player gives, by hatch number. */
 export type KnownEggs = Map<number, {egg: Egg; from: EggSource}>;
@@ -48,8 +49,8 @@ const RARITY_ODDS = {common: 'pCommon', uncommon: 'pUnc', rare: 'pRare', legenda
 export function replay(st: State, charm: boolean, charmFrom: number, known: KnownEggs = new Map()) {
   const collected = new Set<number>();
   const hatches: Hatch[] = [];
-  const entries: Entry[] = st.dex.map(d => ({base: d.baseID, rarity: d.rarity, shiny: d.isShiny, released: !!d.releasedAt, finalName: NAMES[d.finalID - 1], form: d.form, active: false}));
-  if (st.active) entries.push({base: st.active.baseID, rarity: st.active.rarity, shiny: st.active.isShiny, active: true});
+  const entries: Entry[] = st.dex.map(d => ({base: d.baseID, rarity: d.rarity, shiny: d.isShiny, released: !!d.releasedAt, finalName: formName(d.finalID, d.form), form: d.form, active: false}));
+  if (st.active) entries.push({base: st.active.baseID, rarity: st.active.rarity, shiny: st.active.isShiny, form: st.active.form, active: true});
   const w = (l: Line) => collected.has(l.id) ? Math.max(1, Math.floor(l.cr / 2)) : l.cr;
   const draw = (egg: Egg) => {
     let total = 0, wLeg = 0, wRare = 0, wUnc = 0, wDup = 0, wEvoCommon = 0, wFav = 0;
