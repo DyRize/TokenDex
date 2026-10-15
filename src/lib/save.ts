@@ -9,6 +9,7 @@ interface AppDexEntry {
 interface AppActive {
   baseID: number; rarity: Rarity; isShiny?: boolean; pathIDs?: number[]; stageIndex?: number; plannedPathIDs?: number[];
   totalForms?: number; usedAtStage?: number; hasGrowthBoost?: boolean; unownForm?: string;
+  dittoDisguise?: number | null; dittoRevealed?: boolean;
 }
 interface AppState {
   dex: AppDexEntry[]; collectedFinals: string[]; active?: AppActive | null; eggUsage?: number; pendingHatchID?: number | null;
@@ -22,7 +23,9 @@ export interface DexEntry {
   chain: number[]; caughtAt: number | null; unownForm: string | null;
 }
 export interface Active {
-  baseID: number; rarity: Rarity; isShiny: boolean; path: number[]; stage: number; planned: number[];
+  baseID: number; rarity: Rarity;
+  /** As the app shows it: a disguised Ditto's shiny stays hidden until its reveal. */
+  isShiny: boolean; path: number[]; stage: number; planned: number[];
   forms: number; used: number; boost: boolean; unownForm: string | null;
 }
 export interface State {
@@ -46,7 +49,8 @@ function compactState(st: AppState): State {
     collectedFinals: st.collectedFinals || [],
     dex: st.dex.map(d => ({id: d.id, baseID: d.baseID, finalID: d.finalID, rarity: d.rarity, isShiny: !!d.isShiny,
       releasedAt: d.releasedAt ? 1 : 0, chain: d.chainOrder || [d.baseID], caughtAt: appleDate(d.caughtAt), unownForm: d.unownForm || null})),
-    active: st.active ? {baseID: st.active.baseID, rarity: st.active.rarity, isShiny: !!st.active.isShiny,
+    active: st.active ? {baseID: st.active.baseID, rarity: st.active.rarity,
+      isShiny: !!st.active.isShiny && (st.active.dittoDisguise == null || !!st.active.dittoRevealed),
       path: st.active.pathIDs || [], stage: st.active.stageIndex || 0, planned: st.active.plannedPathIDs || st.active.pathIDs || [],
       forms: st.active.totalForms || 1, used: st.active.usedAtStage || 0, boost: !!st.active.hasGrowthBoost,
       unownForm: st.active.unownForm || null} : null,
