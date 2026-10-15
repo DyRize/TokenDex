@@ -1,5 +1,5 @@
 import type {DexEntry} from '../../lib/save';
-import {spriteID} from '../../lib/sprites';
+import {formKey} from '../../lib/forms';
 import {hourKey, type Hours} from '../../lib/usage';
 
 // Tokens burnt between two instants, spreading each hour's total evenly over the hour.
@@ -20,21 +20,21 @@ export function captures(dex: DexEntry[], hours: Hours | null): Capture[] {
   return list.map((d, i) => {
     const prev = i ? list[i - 1].caughtAt : null, finalId = d.chain.filter(id => id <= 649).pop() || d.finalID;
     const c = {d, finalId, at: d.caughtAt,
-      dupe: d.chain.every(id => seen.has(spriteID(id, d.unownForm))),
+      dupe: d.chain.every(id => seen.has(formKey(id, d.form))),
       dur: prev ? d.caughtAt - prev : null, tokens: prev && hours ? tokensBetween(hours, prev, d.caughtAt) : null};
-    d.chain.forEach(id => seen.add(spriteID(id, d.unownForm)));
+    d.chain.forEach(id => seen.add(formKey(id, d.form)));
     return c;
   });
 }
 
 export interface DuplicatedSpecies { finalId: number; form: string | null; copies: number }
 export function duplicatedSpecies(caps: Capture[]): DuplicatedSpecies[] {
-  const key = (c: Capture) => spriteID(c.finalId, c.d.unownForm);
+  const key = (c: Capture) => formKey(c.finalId, c.d.form);
   const duped = new Set(caps.filter(c => c.dupe).map(key)), rows = new Map<number | string, DuplicatedSpecies>();
   for (const c of caps.filter(c => duped.has(key(c)))) {
     const row = rows.get(key(c));
     if (row) row.copies++;
-    else rows.set(key(c), {finalId: c.finalId, form: c.d.unownForm, copies: 1});
+    else rows.set(key(c), {finalId: c.finalId, form: c.d.form, copies: 1});
   }
   return [...rows.values()].sort((a, b) => b.copies - a.copies || a.finalId - b.finalId);
 }

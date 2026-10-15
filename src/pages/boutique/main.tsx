@@ -30,7 +30,7 @@ function Advisor({st, settings, perDay, missing}: {st: State; settings: Settings
   const known = new Set(st.dex.flatMap(d => d.chain)), knownShiny = new Set(st.dex.filter(d => d.isShiny).flatMap(d => d.chain));
   const newShiny = a && a.isShiny ? [...new Set(a.planned)].filter(id => id <= 649 && !knownShiny.has(id)).length : 0;
   const complete = a ? (FINALS[a.baseID] || [a.baseID]).every(f => collected.has(`${a.baseID}:${f}`)) : false;
-  const id = a ? a.path[a.stage] || a.baseID : 0, name = a ? withForm(NAMES[id - 1], id, a.unownForm) : '';
+  const id = a ? a.path[a.stage] || a.baseID : 0, name = a ? withForm(NAMES[id - 1], id, a.form) : '';
   const wait = (n: number) => { if (!perDay) return ''; const h = n / perDay * 24; return ` (≈ ${h < 48 ? Math.max(1, Math.round(h)) + ' h' : Math.round(h / 24) + tr(' jours', ' days')} ${tr('à ton rythme', 'at your pace')})`; };
   const acts: Act[] = [];
   let left = wallet, buyEgg = false;
@@ -38,7 +38,7 @@ function Advisor({st, settings, perDay, missing}: {st: State; settings: Settings
     acts.push(['wait', EGG_SPRITE, tr('Laisse éclore l\'œuf', 'Let the egg hatch'), tr('Pas de Pokémon actif : rien à relâcher, et les bonbons ne servent qu\'à un Pokémon qui grandit.', 'No active Pokémon: nothing to release, and Rare Candies only help a Pokémon that is growing.')]);
   } else if (complete && newShiny) {
     const s = newShiny > 1 ? 's' : '';
-    acts.push(['info', bwSprite(spriteID(id, a.unownForm), {shiny: true}), tr(`Fais grandir ${name}`, `Grow ${name}`),
+    acts.push(['info', bwSprite(spriteID(id, a.form), {shiny: true}), tr(`Fais grandir ${name}`, `Grow ${name}`),
       tr(<>Sa ligne est complète, mais c'est un shiny qui t'apporte <b>{`${newShiny} espèce${s} shiny nouvelle${s}`}</b> : ne le relâche pas.</>,
         <>Its line is complete, but it is a shiny that brings you <b>{`${newShiny} new shiny species`}</b>: don't release it.</>)]);
   } else if (complete) {
@@ -55,7 +55,7 @@ function Advisor({st, settings, perDay, missing}: {st: State; settings: Settings
     }
   } else {
     const fresh = [...new Set(a.planned)].filter(id => !known.has(id)).length, s = fresh > 1 ? 's' : '';
-    acts.push(['info', bwSprite(spriteID(id, a.unownForm), {shiny: a.isShiny}), tr(`Fais grandir ${name}`, `Grow ${name}`), fresh
+    acts.push(['info', bwSprite(spriteID(id, a.form), {shiny: a.isShiny}), tr(`Fais grandir ${name}`, `Grow ${name}`), fresh
       ? tr(<>Sa ligne t'apporte <b>{`${fresh} espèce${s} nouvelle${s}`}</b> : pas question de le relâcher.</>, <>Its line brings you <b>{`${fresh} new species`}</b>: don't release it.</>)
       : tr('Sa ligne n\'est pas encore complète : une forme finale te manque encore.', 'Its line is not complete yet: you still miss a final form.')]);
   }

@@ -3,7 +3,7 @@ import {GRAD, scaled, stageCosts, toGraduation} from './balance';
 import type {Active} from './save';
 
 const active = (patch: Partial<Active> = {}): Active => ({
-  baseID: 1, rarity: 'common', isShiny: false, path: [1], stage: 0, planned: [1, 2, 3], forms: 3, used: 0, boost: false, unownForm: null, ...patch,
+  baseID: 1, rarity: 'common', isShiny: false, path: [1], stage: 0, planned: [1, 2, 3], forms: 3, used: 0, boost: false, form: null, ...patch,
 });
 
 describe('scaled', () => {

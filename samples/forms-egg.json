@@ -1,0 +1,32 @@
+{
+  "dex": [
+    {"id": "00000000-0000-4000-8000-000000000001", "baseID": 16, "finalID": 18, "rarity": "common", "chainOrder": [16, 17, 18], "caughtAt": 813489000, "isShiny": false},
+    {"id": "00000000-0000-4000-8000-000000000002", "baseID": 201, "finalID": 201, "rarity": "common", "chainOrder": [201], "caughtAt": 813508800, "isShiny": false, "form": "b"},
+    {"id": "00000000-0000-4000-8000-000000000003", "baseID": 422, "finalID": 423, "rarity": "common", "chainOrder": [422, 423], "caughtAt": 813578700, "isShiny": false, "form": "west"},
+    {"id": "00000000-0000-4000-8000-000000000004", "baseID": 412, "finalID": 413, "rarity": "uncommon", "chainOrder": [412, 413], "caughtAt": 813608400, "isShiny": false, "form": "sandy"},
+    {"id": "00000000-0000-4000-8000-000000000005", "baseID": 585, "finalID": 586, "rarity": "common", "chainOrder": [585, 586], "caughtAt": 813660600, "isShiny": false, "form": "spring"},
+    {"id": "00000000-0000-4000-8000-000000000006", "baseID": 201, "finalID": 201, "rarity": "common", "chainOrder": [201], "caughtAt": 813688200, "isShiny": false, "form": "k"},
+    {"id": "00000000-0000-4000-8000-000000000007", "baseID": 201, "finalID": 201, "rarity": "common", "chainOrder": [201], "caughtAt": 813743100, "isShiny": false, "form": "exclamation"},
+    {"id": "00000000-0000-4000-8000-000000000008", "baseID": 492, "finalID": 492, "rarity": "legendary", "chainOrder": [492], "caughtAt": 813748500, "isShiny": false, "form": "sky"},
+    {"id": "00000000-0000-4000-8000-000000000009", "baseID": 422, "finalID": 423, "rarity": "common", "chainOrder": [422, 423], "caughtAt": 813753600, "isShiny": true, "form": "east"},
+    {"id": "00000000-0000-4000-8000-000000000010", "baseID": 412, "finalID": 414, "rarity": "uncommon", "chainOrder": [412, 414], "caughtAt": 813758700, "isShiny": false, "form": "sandy"},
+    {"id": "00000000-0000-4000-8000-000000000011", "baseID": 493, "finalID": 493, "rarity": "legendary", "chainOrder": [493], "caughtAt": 813762600, "isShiny": false, "form": "fire"},
+    {"id": "00000000-0000-4000-8000-000000000012", "baseID": 422, "finalID": 423, "rarity": "common", "chainOrder": [422, 423], "caughtAt": 813766800, "isShiny": false, "form": "west"}
+  ],
+  "collectedFinals": [
+    "16:18",
+    "201:201",
+    "412:413",
+    "412:414",
+    "422:423",
+    "492:492",
+    "493:493",
+    "585:586"
+  ],
+  "pendingHatchID": 479,
+  "pendingForm": "wash",
+  "eggUsage": 2000000,
+  "inventory": {},
+  "usedSinceInstall": 2500000000,
+  "spentTokens": 0
+}

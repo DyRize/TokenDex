@@ -1,3 +1,5 @@
+import {unownSymbol} from '../data/forms';
+
 // PokeAPI's sprites, relayed and kept on disk by serve.py.
 const SPRITES = 'sprites/';
 export const EGG_SPRITE = SPRITES + 'pokemon/egg.png';
@@ -10,5 +12,4 @@ export const bwSprite = (id: number | string, {shiny = false, animated = false} 
    201-exclamation, 201-question; A stays 201, like saves from before the letters. The result also works as a
    collection key: two Unown with different letters are different catches. */
 export const spriteID = (id: number, form?: string | null) => id === 201 && form && form !== 'a' ? `201-${form}` : id;
-const unownSymbol = (form?: string | null) => form === 'exclamation' ? '!' : form === 'question' ? '?' : (form || 'a').toUpperCase();
-export const withForm = (name: string, id: number, form?: string | null) => id === 201 ? `${name} [${unownSymbol(form)}]` : name;
+export const withForm = (name: string, id: number, form?: string | null) => id === 201 ? `${name} [${unownSymbol(form || 'a')}]` : name;

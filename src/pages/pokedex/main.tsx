@@ -34,9 +34,9 @@ function buildDex(v: Save): Dex | null {
   // Unown letters, the growing one included like the app does. The tile shows the latest letter.
   const unown = st.dex.filter(d => d.chain.includes(201)).sort((a, b) => (a.caughtAt || 0) - (b.caughtAt || 0));
   if (unown.length) {
-    const forms = new Set(unown.map(d => d.unownForm || 'a'));
-    if (st.active && st.active.path.slice(0, st.active.stage + 1).includes(201)) forms.add(st.active.unownForm || 'a');
-    Object.assign(got.get(201)!, {forms, form: unown[unown.length - 1].unownForm || 'a'});
+    const forms = new Set(unown.map(d => d.form || 'a'));
+    if (st.active && st.active.path.slice(0, st.active.stage + 1).includes(201)) forms.add(st.active.form || 'a');
+    Object.assign(got.get(201)!, {forms, form: unown[unown.length - 1].form || 'a'});
   }
   const cur = new Set(st.active ? st.active.path.slice(0, st.active.stage + 1) : []);
   const lastEntry = st.dex.filter(d => d.caughtAt).sort((a, b) => b.caughtAt! - a.caughtAt!)[0];
@@ -47,7 +47,7 @@ function buildDex(v: Save): Dex | null {
 function info(dex: Dex, id: number): Got | null {
   const g = dex.got.get(id);
   if (g) return g;
-  return dex.cur.has(id) && dex.active ? {name: NAMES[id - 1], shiny: dex.active.isShiny, at: 0, growing: true, form: dex.active.unownForm} : null;
+  return dex.cur.has(id) && dex.active ? {name: NAMES[id - 1], shiny: dex.active.isShiny, at: 0, growing: true, form: dex.active.form} : null;
 }
 // Species caught since the reveals this browser remembers. The first visit remembers everything as seen.
 function unseenAtLoad(dex: Dex) {

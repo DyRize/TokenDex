@@ -48,7 +48,7 @@ const RARITY_ODDS = {common: 'pCommon', uncommon: 'pUnc', rare: 'pRare', legenda
 export function replay(st: State, charm: boolean, charmFrom: number, known: KnownEggs = new Map()) {
   const collected = new Set<number>();
   const hatches: Hatch[] = [];
-  const entries: Entry[] = st.dex.map(d => ({base: d.baseID, rarity: d.rarity, shiny: d.isShiny, released: !!d.releasedAt, finalName: NAMES[d.finalID - 1], form: d.unownForm, active: false}));
+  const entries: Entry[] = st.dex.map(d => ({base: d.baseID, rarity: d.rarity, shiny: d.isShiny, released: !!d.releasedAt, finalName: NAMES[d.finalID - 1], form: d.form, active: false}));
   if (st.active) entries.push({base: st.active.baseID, rarity: st.active.rarity, shiny: st.active.isShiny, active: true});
   const w = (l: Line) => collected.has(l.id) ? Math.max(1, Math.floor(l.cr / 2)) : l.cr;
   const draw = (egg: Egg) => {

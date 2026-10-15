@@ -4,10 +4,10 @@ import {Header, NoSave, Tiles, mount, saveEyebrow, type TileData} from '../../co
 import {RarityTag} from '../../components/Rarity';
 import {NAMES} from '../../data/species';
 import {tok} from '../../lib/format';
+import {formKey, formName, formSprite} from '../../lib/forms';
 import {useSave, useServed} from '../../lib/hooks';
 import {LOCALE, tr} from '../../lib/i18n';
 import type {DexEntry} from '../../lib/save';
-import {bwSprite, spriteID, withForm} from '../../lib/sprites';
 import {hourKey, uncounted, type Hours, type Usage} from '../../lib/usage';
 import {captures, duplicatedSpecies, type Capture} from './captures';
 
@@ -21,7 +21,6 @@ const fmtDur = (ms: number) => {
 const fmtDayLong = (t: number) => new Date(t).toLocaleDateString(LOCALE, {weekday: 'long', day: 'numeric', month: 'long'});
 const fmtDayShort = (t: number) => new Date(t).toLocaleDateString(LOCALE, {day: 'numeric', month: 'short'});
 const noon = (k: string) => Date.parse(k + 'T12:00');
-const nameOf = (id: number, form: string | null) => withForm(NAMES[id - 1], id, form);
 
 function Daily({byDay, dayTokens, first}: {byDay: Map<string, Capture[]>; dayTokens: Record<string, number>; first: number}) {
   const [tip, setTip] = useState<{k: string; left: number; top: number; on: boolean} | null>(null);
@@ -58,7 +57,7 @@ function Daily({byDay, dayTokens, first}: {byDay: Map<string, Capture[]>; dayTok
         })}
       </svg>
       <div class="tip" style={tip ? {opacity: tip.on ? 1 : 0, left: tip.left, top: tip.top} : undefined}>
-        {tip && <><b>{fmtDayLong(noon(tip.k))}</b>{tok(dayTokens[tip.k] || 0)}{tipList.length > 0 && <><br />{tipList.map(c => nameOf(c.finalId, c.d.unownForm)).join(', ')}</>}</>}
+        {tip && <><b>{fmtDayLong(noon(tip.k))}</b>{tok(dayTokens[tip.k] || 0)}{tipList.length > 0 && <><br />{tipList.map(c => formName(c.finalId, c.d.form)).join(', ')}</>}</>}
       </div>
     </div>
   );
@@ -69,10 +68,10 @@ function CaptureRow({c}: {c: Capture}) {
   const meta = [c.dur != null ? `${tr('en', 'in')} ${fmtDur(c.dur)}` : tr('première', 'first'), c.tokens != null ? tok(c.tokens) : null].filter(Boolean).join(' · ');
   return (
     <div class="cap-row">
-      <img loading="lazy" alt="" src={bwSprite(spriteID(c.finalId, d.unownForm), {shiny: d.isShiny})} />
+      <img loading="lazy" alt="" src={formSprite(c.finalId, d.form, {shiny: d.isShiny})} />
       <div style="min-width:0">
         <div class="nm">
-          {nameOf(c.finalId, d.unownForm)} <RarityTag rarity={d.rarity} />
+          {formName(c.finalId, d.form)} <RarityTag rarity={d.rarity} />
           {d.baseID === 132 && <span class="flag ditto">{NAMES[131]}</span>}
           {d.isShiny && <span class="flag shiny">Shiny ✦</span>}
           {c.dupe && <span class="flag">{tr('Doublon', 'Duplicate')}</span>}
@@ -99,7 +98,7 @@ function Journal({dex, hours, missing}: {dex: DexEntry[]; hours: Hours | null; m
   const tiles: TileData[] = [
     ['Graduations', String(caps.length), tr(`dont ${dupes} doublons`, `${dupes} of them duplicates`)],
     [tr('Record en un jour', 'Best day'), bestDay ? `${bestDay.length} graduations` : '—', bestDay ? fmtDayShort(bestDay[0].at) : ''],
-    [tr('La plus rapide', 'Fastest'), fastest ? fmtDur(fastest.dur!) : '—', fastest ? nameOf(fastest.finalId, fastest.d.unownForm) : ''],
+    [tr('La plus rapide', 'Fastest'), fastest ? fmtDur(fastest.dur!) : '—', fastest ? formName(fastest.finalId, fastest.d.form) : ''],
   ];
   if (bigDay) tiles.push([tr('Record de tokens', 'Most tokens in a day'), tok(bigDay[1]), fmtDayShort(noon(bigDay[0]))]);
   if (withTok.length) tiles.push([tr('Coût moyen', 'Average cost'), tok(withTok.reduce((x, c) => x + c.tokens!, 0) / withTok.length), tr('en tokens par graduation', 'in tokens per graduation')]);
@@ -111,12 +110,12 @@ function Journal({dex, hours, missing}: {dex: DexEntry[]; hours: Hours | null; m
           <summary>{duplicatedOpen ? tr('Masquer les Pokémon en double', 'Hide the duplicated Pokémon')
             : duplicated.length > 1 ? tr(`Voir les ${duplicated.length} Pokémon en double`, `See the ${duplicated.length} duplicated Pokémon`)
             : tr('Voir le Pokémon en double', 'See the duplicated Pokémon')}</summary>
-          <p class="hint">{tr(`Une graduation est un doublon quand chaque espèce de sa lignée avait déjà été atteinte par une graduation précédente, chaque forme de ${NAMES[200]} comptant à part.`,
-            `A graduation is a duplicate when every species along its evolution chain had already been reached by an earlier graduation, each ${NAMES[200]} form counting as its own species.`)}</p>
+          <p class="hint">{tr(`Une graduation est un doublon quand chaque espèce de sa lignée avait déjà été atteinte par une graduation précédente, chaque forme d'une espèce comptant comme une espèce à part.`,
+            `A graduation is a duplicate when every species along its evolution chain had already been reached by an earlier graduation, each form of a species counting as its own species.`)}</p>
           <div class="duplicated-grid">
             {duplicated.map(r => (
-              <div key={spriteID(r.finalId, r.form)}>
-                <img loading="lazy" alt="" src={bwSprite(spriteID(r.finalId, r.form))} /><span class="nm">{nameOf(r.finalId, r.form)}</span><b>{`×${r.copies}`}</b>
+              <div key={formKey(r.finalId, r.form)}>
+                <img loading="lazy" alt="" src={formSprite(r.finalId, r.form)} /><span class="nm">{formName(r.finalId, r.form)}</span><b>{`×${r.copies}`}</b>
               </div>
             ))}
           </div>

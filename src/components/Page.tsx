@@ -54,7 +54,7 @@ export function Header({eyebrow, title, lede, save}: {eyebrow: string; title: st
   return (
     <header>
       <div class={a ? 'mascot' : 'mascot egg'} aria-hidden="true">
-        <img alt="" src={a ? bwSprite(spriteID(a.path[a.stage] || a.baseID, a.unownForm), {shiny: a.isShiny, animated: true}) : EGG_SPRITE} />
+        <img alt="" src={a ? bwSprite(spriteID(a.path[a.stage] || a.baseID, a.form), {shiny: a.isShiny, animated: true}) : EGG_SPRITE} />
       </div>
       <span class="eyebrow">{eyebrow}</span>
       {n && <p class="commit-note">{noticeText(n)}</p>}
