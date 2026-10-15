@@ -2,7 +2,7 @@
 
 **English** · [Français](README.fr.md)
 
-Web pages around your [PokeTokenBar](https://github.com/chattymin/PokeTokenBar) save:
+Web pages around your [PokeTokenLBI](https://github.com/KillianHzr/PokeTokenLBI) save:
 
 - **Pokédex** (home): all 649 species, as silhouettes until you have them, with a "Who's that Pokémon?" for every new catch.
 - **Growing**: your current Pokémon, and when it should next evolve and graduate at your usual pace.
@@ -13,13 +13,13 @@ Web pages around your [PokeTokenBar](https://github.com/chattymin/PokeTokenBar) 
 - **Luck**: whether your draws were lucky or not.
 - **Chrono**: how long until your Pokédex is complete, from your collection and at your real pace, with the dates of your next milestones.
 
-You need a Mac with PokeTokenBar installed, and an internet connection the first time each sprite shows up.
+You need a Mac with PokeTokenLBI installed, and an internet connection the first time each sprite shows up.
 
 The interface is in English and French: FR/EN button in the menu, otherwise your browser's language decides.
 
 ## Run the server
 
-With [Homebrew](https://brew.sh), already there if you installed PokeTokenBar with it:
+With [Homebrew](https://brew.sh):
 
 ```sh
 brew install DyRize/tap/tokendex
@@ -56,13 +56,13 @@ After a `git pull`, run `npm install && npm run build` again. If macOS offers to
 
 `npm run dev` serves the pages on http://127.0.0.1:5173 and reloads them on every change. Keep `serve.py` running alongside: it provides the save and the history, and the dev server asks it for them. `npm run typecheck` checks the types, `npm run build` rebuilds `dist/`.
 
-`samples/` holds made-up saves for cases a real save rarely shows: duplicates, Unown forms, a released Pokémon, 150 hatches with bought eggs and a Shiny Charm, bought eggs of every kind with the purchases the app's log would give (`bought-eggs.purchases.json`), and exports written by a newer and an older version of the app than the one TokenDex was checked against (`newer-app.json`, `older-app.json`). To look at one, stop `serve.py` and load it on the home page; it stays until `serve.py` serves the app's save again. They are also the saves to show in a screenshot, since a real one shows someone's collection.
+`samples/` holds made-up saves for cases a real save rarely shows: duplicates, Unown forms, a released Pokémon, 150 hatches with bought eggs and a Shiny Charm, and bought eggs of every kind with the purchases the app's log would give (`bought-eggs.purchases.json`). To look at one, stop `serve.py` and load it on the home page; it stays until `serve.py` serves the app's save again. They are also the saves to show in a screenshot, since a real one shows someone's collection.
 
 Development needs Node 24 (`nvm use` picks it from `.nvmrc`): `npm test` runs the tests (Vitest, then the `serve.py` tests), `npm run lint` the linter (Oxlint, with the rules that need types through tsgo). To only run the app, Node 20.19 is enough.
 
 The version lives in `package.json`; while it carries a suffix (`0.1.0-alpha.1`), the menu shows an "alpha" badge.
 
-The versions of the app TokenDex was checked against live in `CHECKED_VERSIONS`, in `src/lib/version.ts`. When the app comes out in a new version, re-read the rules TokenDex reproduces against it: if nothing changed, add the version to the list; otherwise update the computations and replace the list. Then release TokenDex.
+The PokeTokenLBI commits TokenDex was checked against live in `CHECKED_COMMITS`, in `src/lib/commit.ts`, each with its date as the app's `Info.plist` gives it. When the app's `main` moves on, re-read the rules TokenDex reproduces against its new commit: if nothing changed, add that commit to the list; otherwise update the computations and replace the list. Then release TokenDex.
 
 ## What the server reads
 
@@ -71,7 +71,7 @@ It only listens on your machine (`127.0.0.1`), only answers to `127.0.0.1:8649` 
 - `~/Library/Application Support/PokeTokenBar/companion-state.json`: your save.
 - Your token history, wherever the app gets it: its own caches in that same folder (Claude Code, Codex, Gemini, Grok, Pi, OMP, Kimi Code, and Cursor's API usage), and the local files of Antigravity, OpenCode, Hermes, Cursor, Copilot, Kiro and Aside, in their default locations and in the folders added in the app's settings. It only keeps the total per hour: no prompts, no projects, no model names. If a tool the app counts can't be read, the pages say so.
 - From the app's settings: the Growth and Shop sliders and those added folders, nothing else.
-- From the app itself (`/Applications/PokeTokenBar.app`): its version only, so the pages can tell you when your save comes from a version TokenDex hasn't been checked against.
+- From the app itself (`/Applications/PokeTokenLBI.app`): the commit it was built from and that commit's date only, so the pages can tell you when your app is at a commit TokenDex hasn't been checked against.
 - From the app's log (`~/Library/Logs/PokeTokenBar.log` and `PokeTokenBar.old.log`): the egg purchases only, with when, which egg and what hatched next, so the Luck page knows each bought egg's type. The log only goes back a couple of weeks, so the server keeps the purchases it has seen in `~/Library/Caches/TokenDex`: run it at least once every couple of weeks to catch every purchase.
 
 None of your data leaves your Mac. The server downloads the Pokémon sprites from GitHub (PokeAPI) and the trainer sprites of the Card page from Pokémon Showdown, once: it keeps them cached in `~/Library/Caches/TokenDex`.

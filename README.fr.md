@@ -2,7 +2,7 @@
 
 [English](README.md) · **Français**
 
-Des pages web autour de ta sauvegarde [PokeTokenBar](https://github.com/chattymin/PokeTokenBar) :
+Des pages web autour de ta sauvegarde [PokeTokenLBI](https://github.com/KillianHzr/PokeTokenLBI) :
 
 - **Pokédex** (accueil) : les 649 espèces, en silhouette tant que tu ne les as pas, avec un « Quel est ce Pokémon ? » à chaque nouvelle capture.
 - **En cours** : ton Pokémon actuel, et l'heure estimée de sa prochaine évolution et de sa graduation d'après ton rythme habituel.
@@ -13,13 +13,13 @@ Des pages web autour de ta sauvegarde [PokeTokenBar](https://github.com/chattymi
 - **Chance** : si tu as eu de la chance ou pas sur tes tirages.
 - **Chrono** : le temps qu'il te reste pour compléter le Pokédex, en partant de ta collection et à ton rythme réel, avec les dates de tes prochains paliers.
 
-Il faut un Mac avec PokeTokenBar installé, et une connexion internet la première fois qu'un sprite s'affiche.
+Il faut un Mac avec PokeTokenLBI installé, et une connexion internet la première fois qu'un sprite s'affiche.
 
 L'interface existe en français et en anglais : bouton FR/EN dans le menu, sinon c'est la langue du navigateur qui décide.
 
 ## Lancer le serveur
 
-Avec [Homebrew](https://brew.sh), déjà là si tu as installé PokeTokenBar avec :
+Avec [Homebrew](https://brew.sh) :
 
 ```sh
 brew install DyRize/tap/tokendex
@@ -56,13 +56,13 @@ Après un `git pull`, relance `npm install && npm run build`. Si macOS propose d
 
 `npm run dev` sert les pages sur http://127.0.0.1:5173 et les recharge à chaque modification. Laisse `serve.py` tourner à côté : c'est lui qui fournit la sauvegarde et l'historique, le serveur de dev les lui demande. `npm run typecheck` vérifie les types, `npm run build` refait `dist/`.
 
-`samples/` contient des sauvegardes inventées pour les cas qu'une vraie sauvegarde montre rarement : doublons, formes de Zarbi, Pokémon relâché, 150 éclosions avec des œufs achetés et le Charme Chroma, des œufs achetés de chaque sorte avec les achats que donnerait le journal de l'app (`bought-eggs.purchases.json`), et des exports écrits par une version de l'app plus récente et une plus ancienne que celle que TokenDex a vérifiée (`newer-app.json`, `older-app.json`). Pour en voir une, arrête `serve.py` et charge-la depuis l'accueil ; elle reste jusqu'à ce que `serve.py` serve de nouveau la sauvegarde de l'app. Ce sont aussi elles qu'on montre en capture d'écran, puisqu'une vraie sauvegarde montre la collection de quelqu'un.
+`samples/` contient des sauvegardes inventées pour les cas qu'une vraie sauvegarde montre rarement : doublons, formes de Zarbi, Pokémon relâché, 150 éclosions avec des œufs achetés et le Charme Chroma, et des œufs achetés de chaque sorte avec les achats que donnerait le journal de l'app (`bought-eggs.purchases.json`). Pour en voir une, arrête `serve.py` et charge-la depuis l'accueil ; elle reste jusqu'à ce que `serve.py` serve de nouveau la sauvegarde de l'app. Ce sont aussi elles qu'on montre en capture d'écran, puisqu'une vraie sauvegarde montre la collection de quelqu'un.
 
 Pour développer, il faut Node 24 (`nvm use` le prend dans `.nvmrc`) : `npm test` lance les tests (Vitest, puis ceux de `serve.py`), `npm run lint` le lint (Oxlint, avec les règles qui ont besoin des types via tsgo). Pour seulement lancer l'app, Node 20.19 suffit.
 
 La version est dans `package.json` ; tant qu'elle porte un suffixe (`0.1.0-alpha.1`), le menu affiche un badge « alpha ».
 
-Les versions de l'app que TokenDex a vérifiées sont dans `CHECKED_VERSIONS`, dans `src/lib/version.ts`. Quand l'app sort en nouvelle version, relis contre elle les règles que TokenDex reproduit : si rien n'a changé, ajoute la version à la liste ; sinon, mets à jour les calculs et remplace la liste. Publie ensuite TokenDex.
+Les commits de PokeTokenLBI que TokenDex a vérifiés sont dans `CHECKED_COMMITS`, dans `src/lib/commit.ts`, chacun avec sa date telle que la donne l'`Info.plist` de l'app. Quand le `main` de l'app avance, relis contre son nouveau commit les règles que TokenDex reproduit : si rien n'a changé, ajoute ce commit à la liste ; sinon, mets à jour les calculs et remplace la liste. Publie ensuite TokenDex.
 
 ## Ce que le serveur lit
 
@@ -71,7 +71,7 @@ Il n'écoute que sur ta machine (`127.0.0.1`), ne répond qu'aux adresses `127.0
 - `~/Library/Application Support/PokeTokenBar/companion-state.json` : ta sauvegarde.
 - Ton historique de tokens, là où l'app le prend : ses propres caches dans ce même dossier (Claude Code, Codex, Gemini, Grok, Pi, OMP, Kimi Code, et l'usage de Cursor par son API), et les fichiers locaux d'Antigravity, OpenCode, Hermes, Cursor, Copilot, Kiro et Aside, à leurs emplacements par défaut et dans les dossiers ajoutés dans les réglages de l'app. Il n'en garde que le total par heure : ni prompts, ni projets, ni noms de modèles. Si un outil que l'app compte n'est pas lisible, les pages le signalent.
 - Dans les réglages de l'app : les curseurs Croissance et Boutique et ces dossiers ajoutés, rien d'autre.
-- Dans l'app elle-même (`/Applications/PokeTokenBar.app`) : sa version seulement, pour que les pages te signalent une sauvegarde venue d'une version que TokenDex n'a pas vérifiée.
+- Dans l'app elle-même (`/Applications/PokeTokenLBI.app`) : le commit d'où elle a été construite et la date de ce commit seulement, pour que les pages te signalent une app à un commit que TokenDex n'a pas vérifié.
 - Dans le journal de l'app (`~/Library/Logs/PokeTokenBar.log` et `PokeTokenBar.old.log`) : seulement les achats d'œufs, avec leur moment, l'œuf acheté et ce qui a éclos ensuite, pour que la page Chance connaisse le type de chaque œuf acheté. Le journal ne remonte qu'à deux semaines environ : le serveur garde donc les achats qu'il a vus dans `~/Library/Caches/TokenDex`. Fais-le tourner au moins une fois toutes les deux semaines pour n'en manquer aucun.
 
 Aucune de tes données ne quitte ton Mac. Le serveur télécharge les sprites de Pokémon depuis GitHub (PokeAPI) et ceux des dresseurs de la page Carte depuis Pokémon Showdown, une seule fois : il les garde en cache dans `~/Library/Caches/TokenDex`.

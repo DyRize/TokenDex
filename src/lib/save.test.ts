@@ -1,5 +1,6 @@
 import {afterEach, describe, expect, it, vi} from 'vitest';
-import {fetchServedSave, readSaveFile} from './save';
+import {commitNotice} from './commit';
+import {SAVE_KEY, fetchServedSave, readSaveFile, readStoredSave} from './save';
 
 const file = (v: unknown, lastModified = 1_790_000_000_000) => ({text: async () => JSON.stringify(v), lastModified});
 const state = {
@@ -31,8 +32,8 @@ describe('readSaveFile', () => {
     expect(await shiny({})).toBe(true);
   });
 
-  it("doesn't know which version of the app wrote a companion-state.json", async () => {
-    expect((await readSaveFile(file(state))).appVersion).toBeUndefined();
+  it("doesn't know which build of the app wrote a companion-state.json", async () => {
+    expect((await readSaveFile(file(state))).commit).toBeUndefined();
   });
 
   it("reads an export, dated by its exportedAt", async () => {
@@ -41,9 +42,10 @@ describe('readSaveFile', () => {
     expect(st.dex).toHaveLength(2);
   });
 
-  it('keeps the version of the app an export records', async () => {
-    const save = await readSaveFile(file({format: 'poketokenbar.save', appVersion: '2.5.4', exportedAt: '2026-09-30T08:00:00Z', state}));
-    expect(save.appVersion).toBe('2.5.4');
+  it("doesn't take an export's appVersion for its build, since PokeTokenLBI always writes 2.5.5", async () => {
+    const save = await readSaveFile(file({format: 'poketokenbar.save', appVersion: '2.5.5', exportedAt: '2026-09-30T08:00:00Z', state}));
+    expect(save.commit).toBeUndefined();
+    expect(save).not.toHaveProperty('appVersion');
   });
 
   it('rejects anything else', async () => {
@@ -55,10 +57,27 @@ describe('readSaveFile', () => {
 describe('fetchServedSave', () => {
   afterEach(() => { vi.unstubAllGlobals(); });
 
-  it('carries the version of the app serve.py reports, or none', async () => {
-    vi.stubGlobal('fetch', async () => new Response(JSON.stringify(state), {headers: {'X-PokeTokenBar-Version': '2.6.0'}}));
-    expect((await fetchServedSave())!.appVersion).toBe('2.6.0');
-    vi.stubGlobal('fetch', async () => new Response(JSON.stringify(state)));
-    expect((await fetchServedSave())!.appVersion).toBeUndefined();
+  it('carries the commit of the app and its date serve.py reports, or none', async () => {
+    const commit = async (headers: Record<string, string>) => {
+      vi.stubGlobal('fetch', async () => new Response(JSON.stringify(state), {headers}));
+      return (await fetchServedSave())!.commit;
+    };
+    const sha = 'dec94879726d866aed6fe065d6e6fcf2e993d3be';
+    expect(await commit({'X-PokeTokenLBI-Commit': sha, 'X-PokeTokenLBI-Commit-Date': '2026-10-15 11:46'})).toEqual({sha, date: '2026-10-15 11:46'});
+    expect(await commit({'X-PokeTokenLBI-Commit': sha})).toEqual({sha});
+    expect(await commit({'X-PokeTokenLBI-Commit-Date': '2026-10-15 11:46'})).toBeUndefined();
+    expect(await commit({'X-PokeTokenBar-Version': '2.6.0'})).toBeUndefined();
+  });
+});
+
+describe('readStoredSave', () => {
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  it('loads a save kept by a TokenDex that read app versions, with no notice', async () => {
+    const {st} = await readSaveFile(file(state));
+    vi.stubGlobal('localStorage', {getItem: (k: string) => k === SAVE_KEY ? JSON.stringify({at: 1, st, appVersion: '2.6.0'}) : null});
+    const save = readStoredSave()!;
+    expect(save.st).toEqual(st);
+    expect(commitNotice(save.commit)).toBeNull();
   });
 });

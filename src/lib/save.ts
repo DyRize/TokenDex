@@ -1,4 +1,6 @@
 // The save shared by every page: served live by serve.py, or loaded from an export on the home page, and kept in this browser.
+import type {Commit} from './commit';
+
 export type Rarity = 'common' | 'uncommon' | 'rare' | 'legendary';
 
 /* companion-state.json as the app writes it, only the fields read here. Dates are Apple reference seconds. */
@@ -33,8 +35,8 @@ export interface State {
   pendingHatchID: number | null; eggTier: string | null; inventory: Record<string, number>;
   usedSinceInstall: number; spentTokens: number;
 }
-/** `appVersion`: the version of the app that wrote it; missing when unknown, and in saves stored by older TokenDex versions. */
-export interface Save { at: number; st: State; appVersion?: string }
+/** `commit`: the PokeTokenLBI build serving it; missing for a loaded file, and in saves stored by older TokenDex versions. */
+export interface Save { at: number; st: State; commit?: Commit }
 
 export const SAVE_KEY = 'poketokenbar-save-v2';
 export function readStoredSave(): Save | null {
@@ -60,13 +62,13 @@ function compactState(st: AppState): State {
   };
 }
 /** Reads an export of the app, or its companion-state.json, and keeps it for every page. */
-export async function readSaveFile(f: {text(): Promise<string>; lastModified: number; appVersion?: string}): Promise<Save> {
+export async function readSaveFile(f: {text(): Promise<string>; lastModified: number; commit?: Commit}): Promise<Save> {
   const raw = JSON.parse(await f.text());
   const exported = raw.format === 'poketokenbar.save';
   const st: AppState = exported ? raw.state : raw;
   if (!st || !Array.isArray(st.dex) || !Array.isArray(st.collectedFinals)) throw new Error('not a PokeTokenBar save');
   const v = {at: exported ? Date.parse(raw.exportedAt) || f.lastModified : f.lastModified, st: compactState(st),
-    appVersion: exported ? raw.appVersion : f.appVersion};
+    commit: f.commit};
   storeSave(v);
   return v;
 }
@@ -81,13 +83,14 @@ function keepServed(key: string, v: unknown) {
 }
 
 /* Served by serve.py: save.json is the app's live companion-state.json, read again on every request,
-   with the version of the app installed in the Applications folder. */
+   with the commit the installed PokeTokenLBI was built from and its date. */
 export async function fetchServedSave(): Promise<Save | null> {
   let v: Save | null = null;
   try {
     const r = await fetch('save.json', {cache: 'no-store'});
+    const sha = r.headers.get('X-PokeTokenLBI-Commit'), date = r.headers.get('X-PokeTokenLBI-Commit-Date') || undefined;
     if (r.ok) v = await readSaveFile({text: () => r.text(), lastModified: Date.parse(r.headers.get('Last-Modified') || '') || Date.now(),
-      appVersion: r.headers.get('X-PokeTokenBar-Version') || undefined});
+      commit: sha ? {sha, date} : undefined});
   } catch {}
   keepServed('live', !!v);
   return v;

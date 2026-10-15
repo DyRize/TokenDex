@@ -225,7 +225,7 @@ function App() {
     if (atLoad.size && auto) open(byCatch(atLoad));
   }, [atLoad]);
   const load = async (f: File) => {
-    try { setSave(await readSaveFile(f)); } catch { alert(tr('Fichier illisible : ce n\'est pas une sauvegarde PokeTokenBar.', 'Unreadable file: this is not a PokeTokenBar save.')); }
+    try { setSave(await readSaveFile(f)); } catch { alert(tr('Fichier illisible : ce n\'est pas une sauvegarde PokeTokenLBI.', 'Unreadable file: this is not a PokeTokenLBI save.')); }
   };
   useEffect(() => {
     const over = (e: DragEvent) => { e.preventDefault(); document.body.classList.add('dragging'); };

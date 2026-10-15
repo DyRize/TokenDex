@@ -3,8 +3,8 @@
 `--open` also opens them in the browser, or only that when TokenDex is already running.
 
 Live data, read from the app on every request:
-  /save.json      the app's companion-state.json, with the version of the app in the Applications folder
-                  in X-PokeTokenBar-Version (left out when that app is missing or unreadable)
+  /save.json      the app's companion-state.json, with the commit PokeTokenLBI was built from and that commit's date
+                  in X-PokeTokenLBI-Commit and X-PokeTokenLBI-Commit-Date (each left out when the app or its key is missing)
   /usage.json     tokens per local hour from every store the app counts, and which providers that covers
                   (counts only, no prompts or model names)
   /settings.json  the growth and shop sliders of the app
@@ -53,8 +53,9 @@ OLD_LOG = os.path.join(HOME, 'Library/Logs/PokeTokenBar.old.log')
 LOG_LINE = re.compile(r'\[(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ)\] (?:egg purchased: discarded active, tier=(none|uncommon|rare)$|hatch: base=(\d+) )')
 DOMAIN = 'io.github.chattymin.poketokenbar'
 PREFS = os.path.join(HOME, 'Library/Preferences', DOMAIN + '.plist')
-# Where both the Homebrew cask and the manual install put the app.
-APP_INFO = '/Applications/PokeTokenBar.app/Contents/Info.plist'
+# Where PokeTokenLBI's build script installs the app.
+APP_INFO = '/Applications/PokeTokenLBI.app/Contents/Info.plist'
+BUILD_KEYS = {'X-PokeTokenLBI-Commit': 'PTBCommitSHA', 'X-PokeTokenLBI-Commit-Date': 'PTBCommitDate'}
 APPLE_EPOCH = 978307200
 TOKEN_CAP = 10 ** 18
 ISO_TIME = re.compile(r'(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)(\.\d+)?(Z|[+-]\d\d:?\d\d)$')
@@ -79,7 +80,7 @@ _usage = {}
 
 
 def usage_body():
-    """Tokens per local hour from every store PokeTokenBar v2.5.5 counts, and which providers that covers.
+    """Tokens per local hour from every store PokeTokenLBI counts, and which providers that covers.
     A reader runs again only when one of its files changed."""
     hours, found, known, failed, mtime = {}, set(), set(), set(), 0
     for read, providers, paths in usage_sources():
@@ -913,12 +914,14 @@ def save_body():
         return f.read(), os.fstat(f.fileno()).st_mtime
 
 
-def app_version():
+def build_headers():
+    """The commit the installed app was built from and its date, as headers; 'unknown' is what the build script writes outside git."""
     try:
         with open(APP_INFO, 'rb') as f:
-            return plistlib.load(f).get('CFBundleShortVersionString')
+            info = plistlib.load(f)
     except (OSError, ValueError, ExpatError):
-        return None
+        return {}
+    return {h: info[k] for h, k in BUILD_KEYS.items() if isinstance(info.get(k), str) and info[k] not in ('', 'unknown')}
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -948,9 +951,8 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_header('Content-Length', str(len(body)))
         self.send_header('Last-Modified', formatdate(mtime, usegmt=True))
         self.send_header('Cache-Control', 'no-store')
-        version = path == '/save.json' and app_version()
-        if version:
-            self.send_header('X-PokeTokenBar-Version', version)
+        for header, value in (build_headers() if path == '/save.json' else {}).items():
+            self.send_header(header, value)
         self.end_headers()
         self.wfile.write(body)
 
