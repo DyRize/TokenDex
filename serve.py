@@ -687,15 +687,28 @@ def kiro_field(value):
 
 
 def kiro_text(value):
+    """Bytes of a session line's content as the app counts them: each block's payload, never its ids, signatures or images."""
     if isinstance(value, str):
         return len(value.encode())
     if isinstance(value, list):
         return sum(map(kiro_text, value))
     if not isinstance(value, dict):
         return 0
-    if isinstance(value.get('kind'), str):
-        return kiro_text(value.get('data')) if value['kind'] == 'text' else 0
-    return next((kiro_text(value[k]) for k in ('content', 'text', 'data') if k in value), 0)
+    kind, data = value.get('kind'), value.get('data')
+    if not isinstance(kind, str):
+        return next((kiro_text(value[k]) for k in ('content', 'text', 'data') if k in value), 0)
+    part = data if isinstance(data, dict) else {}
+    if kind == 'text':
+        return kiro_text(data)
+    if kind == 'toolUse':
+        return kiro_size(part.get('input'))
+    if kind == 'toolResult':
+        return kiro_text(part.get('content'))
+    if kind == 'thinking':
+        return len(part['text'].encode()) if isinstance(part.get('text'), str) else 0
+    if kind == 'json':
+        return kiro_size(data)
+    return 0
 
 
 def kiro_cli(path):

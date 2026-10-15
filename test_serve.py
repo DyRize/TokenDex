@@ -223,6 +223,20 @@ class UsageTest(unittest.TestCase):
         # latest_summary is absent, so the running history starts at len("0") = 1 byte, as the app counts it.
         self.assertEqual(self.usage()['hours'], {hour(T0): 10 + 20, hour(T1): 35 + 2 + 5 + 3, hour(T2): 12 + 5 + 10 + 1})
 
+    def test_kiro_counts_the_bytes_of_each_block_kind_of_a_session_line_as_the_app_does(self):
+        blocks = (
+            ({'kind': 'text', 'data': 'a' * 40}, 40),
+            ({'kind': 'toolUse', 'data': {'toolUseId': 'x' * 400, 'name': 'fs_read', 'input': {'path': 'b' * 30, 'limit': 10}}}, 32),
+            ({'kind': 'toolResult', 'data': {'toolUseId': 'x' * 400, 'status': 'success',
+                                             'content': [{'kind': 'text', 'data': 'c' * 12}, {'kind': 'json', 'data': {'rows': ['d' * 15, 7]}}]}}, 28),
+            ({'kind': 'thinking', 'data': {'text': 'e' * 44, 'signature': 'x' * 400}}, 44),
+            ({'kind': 'json', 'data': {'a': 'g' * 10, 'b': [1.5, None, False, 12]}}, 16),
+            ({'kind': 'image', 'data': {'format': 'png', 'source': {'bytes': 'x' * 400}}}, 0),
+        )
+        for block, n in blocks:
+            with self.subTest(block['kind']):
+                self.assertEqual(serve.kiro_text([block]), n)
+
     def test_aside_counts_a_turn_at_its_last_activity(self):
         database(self.path('.aside/u/user1/state.db'),
                  ('CREATE TABLE sessions (id INTEGER PRIMARY KEY, model TEXT)',),
